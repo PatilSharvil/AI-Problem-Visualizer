@@ -114,10 +114,17 @@ RETURN THIS EXACT JSON FORMAT:
       "highlight": [0],
       "variables": {"result": 0},
       "hashmap": null,
-      "stack": null
+      "stack": null,
+      "queue": null
     }
   ]
 }
+
+IMPORTANT: Only include data structures that are USED in the algorithm:
+- For stack problems: include "stack", "stackOperation" (push/pop/peek), "stackOperationValue"
+- For queue problems: include "queue", "queueOperation" (enqueue/dequeue), "queueOperationValue"
+- For hashmap problems: include "hashmap"
+- Do NOT include structures that aren't part of the solution
 
 CRITICAL RULES:
 1. Return ONLY valid JSON - no markdown, no comments

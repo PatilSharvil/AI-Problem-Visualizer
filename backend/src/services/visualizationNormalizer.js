@@ -192,7 +192,11 @@ class VisualizationNormalizer {
                 variables: step.variables || {},
                 hashmap: step.hashmap || null,
                 stack: Array.isArray(stack) ? stack : null,
+                stackOperation: step.stackOperation || null,
+                stackOperationValue: step.stackOperationValue,
                 queue: Array.isArray(step.queue) ? step.queue : null,
+                queueOperation: step.queueOperation || null,
+                queueOperationValue: step.queueOperationValue,
                 heap: Array.isArray(step.heap) ? step.heap : null,
                 subsets: Array.isArray(step.subsets) ? step.subsets : null,
                 intervals: Array.isArray(step.intervals) ? step.intervals : null,
@@ -296,11 +300,21 @@ class VisualizationNormalizer {
         if (step.hashmap && typeof step.hashmap === 'object' && Object.keys(step.hashmap).length > 0) {
             components.push({ type: 'hashmap', data: step.hashmap });
         }
-        if (step.stack && Array.isArray(step.stack) && step.stack.length > 0) {
-            components.push({ type: 'stack', data: step.stack });
+        if (step.stack && Array.isArray(step.stack)) {
+            components.push({
+                type: 'stack',
+                data: step.stack,
+                operation: step.stackOperation,
+                operationValue: step.stackOperationValue
+            });
         }
-        if (step.queue && Array.isArray(step.queue) && step.queue.length > 0) {
-            components.push({ type: 'queue', data: step.queue });
+        if (step.queue && Array.isArray(step.queue)) {
+            components.push({
+                type: 'queue',
+                data: step.queue,
+                operation: step.queueOperation,
+                operationValue: step.queueOperationValue
+            });
         }
         if (step.heap && Array.isArray(step.heap) && step.heap.length > 0) {
             components.push({ type: 'heap', data: step.heap });

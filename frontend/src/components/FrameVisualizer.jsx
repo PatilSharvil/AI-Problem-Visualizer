@@ -88,9 +88,9 @@ function FrameVisualizer({ frames, currentFrameIndex, onPrevious, onNext }) {
       case 'hashmap':
         return <HashMapDisplay key={idx} data={comp.data || {}} />;
       case 'stack':
-        return <StackQueueDisplay key={idx} type="stack" data={comp.data || []} />;
+        return <StackQueueDisplay key={idx} type="stack" data={comp.data || []} operation={comp.operation} operationValue={comp.operationValue} />;
       case 'queue':
-        return <StackQueueDisplay key={idx} type="queue" data={comp.data || []} />;
+        return <StackQueueDisplay key={idx} type="queue" data={comp.data || []} operation={comp.operation} operationValue={comp.operationValue} />;
       case 'heap':
         return <HeapDisplay key={idx} data={comp.data || []} />;
       case 'subsets':

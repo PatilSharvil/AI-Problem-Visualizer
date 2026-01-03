@@ -6,60 +6,259 @@
     border-radius: 4px;
 }
 
+.sq-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #cccccc;
+}
+
 .sq-title {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: bold;
     color: #000000;
     text-transform: uppercase;
-    margin-bottom: 10px;
 }
 
-.sq-container {
+.sq-operation {
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: bold;
+    border-radius: 4px;
+    animation: pulse 0.5s ease-in-out;
+}
+
+.sq-operation.push,
+.sq-operation.enqueue {
+    background: #4CAF50;
+    color: white;
+}
+
+.sq-operation.pop,
+.sq-operation.dequeue {
+    background: #f44336;
+    color: white;
+}
+
+.sq-operation.peek {
+    background: #2196F3;
+    color: white;
+}
+
+/* Stack Styling - Vertical */
+.stack-container {
     display: flex;
-    gap: 2px;
-}
-
-.sq-container.vertical {
     flex-direction: column;
     align-items: center;
-    max-width: 80px;
 }
 
-.sq-container.horizontal {
+.stack-elements {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+    border: 2px solid #333;
+    border-top: none;
+    background: #f5f5f5;
+    padding: 5px;
+    min-height: 50px;
+}
+
+.stack-indicator {
+    font-size: 11px;
+    color: #666;
+    padding: 2px 8px;
+    font-weight: bold;
+}
+
+.stack-indicator.top {
+    color: #4CAF50;
+}
+
+.stack-indicator.bottom {
+    color: #888;
+}
+
+.stack-item {
+    width: 60px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #e3f2fd;
+    border: 2px solid #1976D2;
+    font-weight: bold;
+    font-size: 16px;
+    margin: 2px 0;
+    transition: all 0.3s ease;
+}
+
+.stack-item.top-item {
+    background: #4CAF50;
+    color: white;
+    border-color: #2E7D32;
+}
+
+.stack-item.pushing {
+    animation: slideDown 0.5s ease-out;
+    background: #8BC34A;
+}
+
+.stack-item.popping {
+    animation: slideUp 0.5s ease-out;
+    opacity: 0.5;
+}
+
+/* Queue Styling - Horizontal */
+.queue-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.queue-labels {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 400px;
+    margin-bottom: 4px;
+}
+
+.queue-label {
+    font-size: 11px;
+    color: #666;
+    font-weight: bold;
+}
+
+.queue-label.front {
+    color: #4CAF50;
+}
+
+.queue-label.rear {
+    color: #FF9800;
+}
+
+.queue-elements {
+    display: flex;
     flex-direction: row;
     justify-content: center;
-    flex-wrap: wrap;
+    min-height: 50px;
+    border: 2px solid #333;
+    border-left: 4px solid #4CAF50;
+    border-right: 4px solid #FF9800;
+    padding: 8px;
+    background: #f5f5f5;
+    min-width: 100px;
 }
 
-.sq-item {
+.queue-item {
     width: 50px;
     height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #e0e0ff;
-    border: 2px solid #000000;
+    background: #fff3e0;
+    border: 2px solid #FF9800;
     font-weight: bold;
-    font-size: 14px;
+    font-size: 16px;
+    margin: 0 3px;
+    transition: all 0.3s ease;
 }
 
+.queue-item.front-item {
+    background: #4CAF50;
+    color: white;
+    border-color: #2E7D32;
+}
+
+.queue-item.rear-item {
+    background: #FF9800;
+    color: white;
+    border-color: #E65100;
+}
+
+.queue-item.enqueueing {
+    animation: slideLeft 0.5s ease-out;
+}
+
+.queue-item.dequeueing {
+    animation: fadeOut 0.5s ease-out;
+    opacity: 0.5;
+}
+
+/* Common */
 .sq-empty {
-    padding: 10px 20px;
-    color: #888888;
+    padding: 15px 20px;
+    color: #999;
     font-style: italic;
 }
 
-.sq-label {
+.sq-size {
     text-align: center;
-    font-size: 11px;
-    color: #666666;
-    margin-top: 5px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #666;
 }
 
-.sq-labels {
-    display: flex;
-    justify-content: space-between;
-    font-size: 11px;
-    color: #666666;
-    margin-top: 5px;
+/* Animations */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(0);
+        opacity: 1;
+    }
+
+    to {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+}
+
+@keyframes slideLeft {
+    from {
+        transform: translateX(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
 }
