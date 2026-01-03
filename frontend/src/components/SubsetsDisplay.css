@@ -1,0 +1,30 @@
+.subsets-display {
+    margin: 15px 0;
+    padding: 15px;
+    background: #ffffff;
+    border: 2px solid #000000;
+    border-radius: 4px;
+}
+
+.subsets-title {
+    font-size: 12px;
+    font-weight: bold;
+    color: #000000;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+
+.subsets-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.subset-item {
+    padding: 6px 12px;
+    background: #e8f5e9;
+    border: 1px solid #000000;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 14px;
+}

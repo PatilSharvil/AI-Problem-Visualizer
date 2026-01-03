@@ -1,0 +1,41 @@
+.hashmap-display {
+    margin: 15px 0;
+    padding: 15px;
+    background: #ffffff;
+    border: 2px solid #000000;
+    border-radius: 4px;
+}
+
+.hashmap-title {
+    font-size: 12px;
+    font-weight: bold;
+    color: #000000;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+
+.hashmap-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.hashmap-table th,
+.hashmap-table td {
+    border: 1px solid #000000;
+    padding: 8px 12px;
+    text-align: center;
+}
+
+.hashmap-table th {
+    background: #f0f0f0;
+    font-weight: bold;
+}
+
+.key-cell {
+    background: #ffffcc;
+    font-weight: bold;
+}
+
+.value-cell {
+    background: #ffffff;
+}

@@ -1,0 +1,90 @@
+.array-row {
+  margin: 15px 0;
+  padding: 15px;
+  background: #ffffff;
+  border: 2px solid #000000;
+  border-radius: 4px;
+}
+
+.array-label {
+  font-size: 12px;
+  font-weight: bold;
+  color: #000000;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.array-elements {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.element-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pointer-area {
+  height: 20px;
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+}
+
+.pointer-label {
+  font-size: 11px;
+  font-weight: bold;
+  color: #000000;
+  background: #ffff00;
+  padding: 1px 6px;
+  border: 1px solid #000000;
+}
+
+.element-box {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 2px solid #000000;
+  font-size: 16px;
+  font-weight: bold;
+  color: #000000;
+}
+
+.element-box.highlighted {
+  background: #90EE90;
+  border-color: #000000;
+}
+
+.index-label {
+  font-size: 10px;
+  color: #666666;
+  margin-top: 2px;
+}
+
+.array-empty {
+  padding: 20px;
+  text-align: center;
+  color: #999999;
+  font-style: italic;
+}
+
+.no-components {
+  padding: 20px;
+  text-align: center;
+  background: #f9f9f9;
+  border: 1px dashed #cccccc;
+  margin: 10px 0;
+}
+
+.debug-info {
+  font-size: 10px;
+  color: #888888;
+  margin-top: 10px;
+  word-break: break-all;
+}

@@ -1,0 +1,134 @@
+.frame-visualizer {
+    background: #ffffff;
+    border: 2px solid #000000;
+    border-radius: 4px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.frame-visualizer.empty {
+    text-align: center;
+    color: #666666;
+    padding: 40px;
+}
+
+.frame-header {
+    text-align: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #cccccc;
+}
+
+.header-badges {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.frame-counter {
+    display: inline-block;
+    background: #000000;
+    color: #ffffff;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.pattern-badge {
+    display: inline-block;
+    background: #333333;
+    color: #ffffff;
+    padding: 4px 10px;
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+.phase-badge {
+    display: inline-block;
+    background: #0066cc;
+    color: #ffffff;
+    padding: 4px 10px;
+    font-size: 11px;
+}
+
+.frame-title {
+    font-size: 20px;
+    font-weight: bold;
+    color: #000000;
+    margin: 10px 0 5px 0;
+}
+
+.frame-description {
+    color: #666666;
+    font-size: 14px;
+    margin: 0;
+}
+
+.frame-content {
+    min-height: 100px;
+}
+
+.frame-navigation {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #cccccc;
+}
+
+.nav-btn {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: bold;
+    border: 2px solid #000000;
+    background: #ffffff;
+    color: #000000;
+    cursor: pointer;
+}
+
+.nav-btn:hover:not(:disabled) {
+    background: #f0f0f0;
+}
+
+.nav-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.nav-btn.play-btn {
+    background: #000000;
+    color: #ffffff;
+    min-width: 100px;
+}
+
+.progress-bar {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    margin-top: 15px;
+}
+
+.progress-step {
+    width: 20px;
+    height: 6px;
+    background: #dddddd;
+    border: 1px solid #000000;
+}
+
+.progress-step.done {
+    background: #888888;
+}
+
+.progress-step.active {
+    background: #000000;
+}
+
+.keyboard-hint {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 11px;
+    color: #999999;
+}
