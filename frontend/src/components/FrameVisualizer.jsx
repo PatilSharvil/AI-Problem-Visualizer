@@ -93,6 +93,8 @@ function FrameVisualizer({ frames, currentFrameIndex, onPrevious, onNext }) {
         return <StackQueueDisplay key={idx} type="stack" data={comp.data || []} operation={comp.operation} operationValue={comp.operationValue} />;
       case 'queue':
         return <StackQueueDisplay key={idx} type="queue" data={comp.data || []} operation={comp.operation} operationValue={comp.operationValue} />;
+      case 'deque':
+        return <StackQueueDisplay key={idx} type="deque" data={comp.data || []} operation={comp.operation} operationValue={comp.operationValue} />;
       case 'heap':
         return <HeapDisplay key={idx} data={comp.data || []} />;
       case 'subsets':

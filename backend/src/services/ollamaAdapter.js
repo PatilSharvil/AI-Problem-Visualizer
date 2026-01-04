@@ -93,11 +93,45 @@ IMPORTANT: Show the reversed portion progressively! After reversing a link, upda
   ]
 }
 
-FOR STACK PROBLEMS:
-Include "stack": [values], "stackOperation": "push" or "pop"
+FOR STACK PROBLEMS - use "stack" pattern:
+{
+  "pattern": "stack",
+  "structures": [{"id": "stack", "type": "stack", "label": "Stack", "data": []}],
+  "steps": [
+    {"title": "Push 5", "description": "Adding 5 to stack", "array": [5], "stackOperation": "push", "stackOperationValue": 5, "variables": {"top": 5}},
+    {"title": "Push 3", "description": "Adding 3 to stack", "array": [5,3], "stackOperation": "push", "stackOperationValue": 3, "variables": {"top": 3}},
+    {"title": "Push 8", "description": "Adding 8 to stack", "array": [5,3,8], "stackOperation": "push", "stackOperationValue": 8, "variables": {"top": 8}},
+    {"title": "Pop", "description": "Removing top element 8", "array": [5,3], "stackOperation": "pop", "stackOperationValue": 8, "variables": {"popped": 8, "top": 3}},
+    {"title": "Peek", "description": "Looking at top: 3", "array": [5,3], "stackOperation": "peek", "stackOperationValue": 3, "variables": {"top": 3}}
+  ]
+}
+
+FOR QUEUE/BFS PROBLEMS - use "queue" or "bfs" pattern:
+{
+  "pattern": "queue",
+  "structures": [{"id": "queue", "type": "queue", "label": "Queue", "data": []}],
+  "steps": [
+    {"title": "Enqueue 1", "description": "Adding 1 to queue", "array": [1], "queueOperation": "enqueue", "queueOperationValue": 1, "variables": {}},
+    {"title": "Enqueue 2", "description": "Adding 2 to queue", "array": [1,2], "queueOperation": "enqueue", "queueOperationValue": 2, "variables": {}},
+    {"title": "Dequeue", "description": "Removing front element 1", "array": [2], "queueOperation": "dequeue", "queueOperationValue": 1, "variables": {"processed": 1}}
+  ]
+}
 
 FOR TWO POINTERS/SLIDING WINDOW:
 Use "pointers": {"left": 0, "right": 5} with "highlight" array
+
+FOR PROBLEMS USING MULTIPLE DATA STRUCTURES (e.g., array + stack, array + hashmap):
+{
+  "pattern": "multi_structure",
+  "structures": [
+    {"id": "arr", "type": "array", "label": "Input Array", "data": [2,7,11,15]},
+    {"id": "map", "type": "hashmap", "label": "HashMap", "data": {}}
+  ],
+  "steps": [
+    {"title": "Step 1", "description": "...", "array": [2,7,11,15], "hashmap": {}, "highlight": [0], "variables": {}},
+    {"title": "Step 2", "description": "...", "array": [2,7,11,15], "hashmap": {"2": 0}, "highlight": [1], "variables": {}}
+  ]
+}
 
 CRITICAL RULES:
 1. EACH step MUST have "array" field showing the CURRENT state
@@ -105,6 +139,7 @@ CRITICAL RULES:
 3. Include "highlight" for elements being processed
 4. Return ONLY valid JSON, no text before or after
 5. Generate 8-15 detailed steps
+6. For multiple data structures: include ALL relevant fields in each step
 
 Return ONLY the JSON.`;
   }

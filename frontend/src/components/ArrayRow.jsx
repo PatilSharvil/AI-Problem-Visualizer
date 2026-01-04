@@ -48,10 +48,6 @@ function ArrayRow({ id, label, data, highlight, pointers, window }) {
         );
     }
 
-    // Calculate max value for scaling bar heights
-    const maxVal = Math.max(...displayData.map(v => Math.abs(Number(v) || 0)), 1);
-    const barMaxHeight = 150;
-
     const isHighlighted = (index) => {
         if (Array.isArray(highlight) && highlight.includes(index)) return true;
         if (window && index >= window.start && index <= window.end) return true;
@@ -69,8 +65,8 @@ function ArrayRow({ id, label, data, highlight, pointers, window }) {
         if (!swapState.active || !swapState.indices.includes(index)) return '';
         const [i, j] = swapState.indices;
         const gap = 8;
-        const barWidth = 40;
-        const distance = Math.abs(j - i) * (barWidth + gap);
+        const boxWidth = 50;
+        const distance = Math.abs(j - i) * (boxWidth + gap);
 
         if (index === i) return `translateX(${distance}px)`;
         if (index === j) return `translateX(-${distance}px)`;
@@ -87,37 +83,40 @@ function ArrayRow({ id, label, data, highlight, pointers, window }) {
                 </div>
             )}
 
-            <div className="bars-container">
+            <div className="array-boxes">
                 {displayData.map((item, index) => {
-                    const value = Number(item) || 0;
-                    const height = Math.max(20, (Math.abs(value) / maxVal) * barMaxHeight);
+                    const highlighted = isHighlighted(index);
                     const swapping = isSwapping(index);
+                    const pointerLabels = getPointerLabels(index);
                     const transform = getSwapTransform(index);
 
                     return (
                         <div
                             key={index}
-                            className={`bar-wrapper ${swapping ? 'swapping' : ''}`}
+                            className={`box-wrapper ${swapping ? 'swapping' : ''}`}
                             style={{
                                 transform,
                                 transition: swapState.active ? 'transform 0.4s ease-in-out' : 'none',
                                 zIndex: swapping ? 10 : 1
                             }}
                         >
-                            <div className="pointer-area">
-                                {getPointerLabels(index).map(p => (
-                                    <span key={p} className="pointer-label">{p}</span>
-                                ))}
+                            {/* Pointer labels */}
+                            {pointerLabels.length > 0 && (
+                                <div className="pointer-labels">
+                                    {pointerLabels.map(p => (
+                                        <span key={p} className={`pointer-tag ${p}`}>{p}</span>
+                                    ))}
+                                    <span className="pointer-arrow">↓</span>
+                                </div>
+                            )}
+
+                            {/* Box */}
+                            <div className={`array-box ${highlighted ? 'highlighted' : ''} ${swapping ? 'swap-active' : ''}`}>
+                                {String(item)}
                             </div>
 
-                            <div
-                                className={`bar ${isHighlighted(index) ? 'highlighted' : ''} ${swapping ? 'swap-active' : ''}`}
-                                style={{ height: `${height}px` }}
-                            >
-                                <span className="bar-value">{value}</span>
-                            </div>
-
-                            <div className="bar-index">{index}</div>
+                            {/* Index */}
+                            <div className="box-index">{index}</div>
                         </div>
                     );
                 })}

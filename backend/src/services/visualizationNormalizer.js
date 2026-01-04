@@ -295,7 +295,36 @@ class VisualizationNormalizer {
                 struct.id?.includes('list') ||
                 struct.label?.toLowerCase().includes('linked');
 
-            if (isLinkedList) {
+            // Detect stack pattern
+            const isStack = pattern?.includes('stack') ||
+                struct.type === 'stack' ||
+                struct.id?.includes('stack') ||
+                struct.label?.toLowerCase().includes('stack');
+
+            // Detect queue pattern
+            const isQueue = pattern?.includes('queue') ||
+                pattern?.includes('bfs') ||
+                struct.type === 'queue' ||
+                struct.id?.includes('queue') ||
+                struct.label?.toLowerCase().includes('queue');
+
+            if (isStack) {
+                components.push({
+                    type: 'stack',
+                    id: struct.id,
+                    data: arrayData,
+                    operation: step.stackOperation || null,
+                    operationValue: step.stackOperationValue
+                });
+            } else if (isQueue) {
+                components.push({
+                    type: 'queue',
+                    id: struct.id,
+                    data: arrayData,
+                    operation: step.queueOperation || null,
+                    operationValue: step.queueOperationValue
+                });
+            } else if (isLinkedList) {
                 components.push({
                     type: 'linked_list',
                     id: struct.id,
