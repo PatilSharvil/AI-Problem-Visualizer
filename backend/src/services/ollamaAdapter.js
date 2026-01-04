@@ -26,9 +26,7 @@ class OllamaAdapter extends LLMAdapterInterface {
       }
 
       const data = await response.json();
-      const responseText = data.response;
-
-      return this.parseJSON(responseText);
+      return this.parseJSON(data.response);
     } catch (error) {
       console.error('Error calling Ollama API:', error.message);
       throw error;
@@ -36,184 +34,104 @@ class OllamaAdapter extends LLMAdapterInterface {
   }
 
   parseJSON(text) {
-    // Strategy 1: Direct parse
     try {
       const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      }
+      if (jsonMatch) return JSON.parse(jsonMatch[0]);
     } catch (e) {
       console.log('Strategy 1 failed, trying fixes...');
     }
 
-    // Strategy 2: Fix common JSON issues
     try {
-      let fixed = text;
-      const jsonMatch = fixed.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        fixed = jsonMatch[0];
-      }
-
-      fixed = fixed.replace(/,\s*}/g, '}');
-      fixed = fixed.replace(/,\s*]/g, ']');
-      fixed = fixed.replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3');
+      let fixed = text.match(/\{[\s\S]*\}/)?.[0] || text;
+      fixed = fixed.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
       fixed = fixed.replace(/'/g, '"');
-      fixed = fixed.replace(/[\x00-\x1F\x7F]/g, ' ');
-
       return JSON.parse(fixed);
     } catch (e) {
-      console.log('Strategy 2 failed, trying minimal structure...');
+      console.log('Strategy 2 failed');
     }
 
-    console.log('Returning fallback structure');
     return this.getFallbackStructure();
   }
 
   getFallbackStructure() {
     return {
       pattern: "unknown",
-      structures: [
-        { id: "arr", type: "array", label: "Data", data: [1, 2, 3, 4, 5] }
-      ],
-      steps: [
-        {
-          title: "Processing",
-          description: "Algorithm visualization in progress. The LLM output may have had formatting issues.",
-          pointers: {},
-          highlight: [],
-          variables: { status: "check logs for details" }
-        }
-      ]
+      structures: [{ id: "arr", type: "array", label: "Data", data: [1, 2, 3, 4, 5] }],
+      steps: [{ title: "Processing", description: "Check logs", pointers: {}, highlight: [], variables: {} }]
     };
   }
 
   buildUniversalPrompt(problemStatement) {
-    return `You are an algorithm visualization engine. Create DETAILED step-by-step visualization.
+    return `You are an algorithm visualization engine.
 
 PROBLEM: ${problemStatement}
 
-DETECT THE BEST PATTERN:
-- sliding_window, two_pointers, fast_slow_pointers
-- binary_search, cyclic_sort, merge_intervals  
-- tree_bfs, tree_dfs, two_heaps
-- subsets, top_k_elements, k_way_merge
-- topological_sort, hashmap, linked_list_reversal
+VERY IMPORTANT: For sorting/swapping problems, EACH STEP MUST include the CURRENT array state after any changes!
 
-RETURN THIS EXACT JSON FORMAT:
+Return JSON:
 
 {
-  "pattern": "pattern_name",
+  "pattern": "sorting",
   "structures": [
-    {"id": "arr", "type": "array", "label": "Data", "data": [1,2,3,4,5]}
+    {"id": "arr", "type": "array", "label": "Array", "data": [5,3,8,1]}
   ],
   "steps": [
     {
-      "title": "Step Title",
-      "description": "Detailed explanation of what happens",
-      "pointers": {"i": 0},
-      "highlight": [0],
-      "variables": {"result": 0},
-      "hashmap": null,
-      "stack": null,
-      "queue": null
+      "title": "Initial",
+      "description": "Starting array",
+      "array": [5,3,8,1],
+      "highlight": [],
+      "variables": {}
+    },
+    {
+      "title": "Compare 5 and 3",
+      "description": "5 > 3, need to swap",
+      "array": [5,3,8,1],
+      "highlight": [0,1],
+      "variables": {"comparing": "5 vs 3"}
+    },
+    {
+      "title": "Swap 5 and 3",
+      "description": "Swapped positions 0 and 1",
+      "array": [3,5,8,1],
+      "highlight": [0,1],
+      "swap": [0,1],
+      "variables": {"swapped": true}
+    },
+    {
+      "title": "Compare 5 and 8",
+      "description": "5 < 8, no swap needed",
+      "array": [3,5,8,1],
+      "highlight": [1,2],
+      "variables": {}
+    },
+    {
+      "title": "Compare 8 and 1",
+      "description": "8 > 1, need to swap",
+      "array": [3,5,8,1],
+      "highlight": [2,3],
+      "variables": {}
+    },
+    {
+      "title": "Swap 8 and 1",
+      "description": "Swapped positions 2 and 3",
+      "array": [3,5,1,8],
+      "highlight": [2,3],
+      "swap": [2,3],
+      "variables": {}
     }
   ]
 }
-
-IMPORTANT: Only include data structures that are USED in the algorithm:
-- For stack problems: include "stack", "stackOperation" (push/pop/peek), "stackOperationValue"
-- For queue problems: include "queue", "queueOperation" (enqueue/dequeue), "queueOperationValue"
-- For hashmap problems: include "hashmap"
-- Do NOT include structures that aren't part of the solution
 
 CRITICAL RULES:
-1. Return ONLY valid JSON - no markdown, no comments
-2. Use double quotes for all strings
-3. No trailing commas
-4. GENERATE ENOUGH STEPS TO SHOW THE COMPLETE ALGORITHM:
-   - Simple problems: 5-8 steps
-   - Medium problems: 8-12 steps
-   - Complex problems: 12-20 steps
-   - Show EVERY iteration/operation, not just key moments
-5. All indices must be valid (0 to array.length-1)
-6. Each step should show the current state clearly
-7. LINKED LISTS: Represent as simple value arrays [1,2,3,4], NOT as node objects
+1. EACH step MUST have "array" field showing the CURRENT state of the array
+2. When a swap happens, the next step's "array" should show the swapped values
+3. Include "swap": [i, j] when elements swap positions
+4. Include "highlight" to show which elements are being compared/swapped
+5. Return ONLY valid JSON, no text before or after
+6. Generate 8-15 steps for sorting problems
 
-EXAMPLE - Two Pointers (Container with Water) - DETAILED:
-{
-  "pattern": "two_pointers",
-  "structures": [
-    {"id": "heights", "type": "array", "label": "Heights", "data": [1,8,6,2,5,4,8,3,7]}
-  ],
-  "steps": [
-    {
-      "title": "Initialize Pointers",
-      "description": "Set left=0, right=8. Calculate initial area.",
-      "pointers": {"left": 0, "right": 8},
-      "highlight": [0, 8],
-      "variables": {"maxArea": 0, "left": 0, "right": 8}
-    },
-    {
-      "title": "Calculate Area 1",
-      "description": "Area = min(1,7) × 8 = 8. Update maxArea to 8.",
-      "pointers": {"left": 0, "right": 8},
-      "highlight": [0, 8],
-      "variables": {"maxArea": 8, "currentArea": 8, "width": 8}
-    },
-    {
-      "title": "Move Left Pointer",
-      "description": "heights[0]=1 < heights[8]=7, move left to 1",
-      "pointers": {"left": 1, "right": 8},
-      "highlight": [1, 8],
-      "variables": {"maxArea": 8, "left": 1, "right": 8}
-    },
-    {
-      "title": "Calculate Area 2",
-      "description": "Area = min(8,7) × 7 = 49. Update maxArea to 49!",
-      "pointers": {"left": 1, "right": 8},
-      "highlight": [1, 8],
-      "variables": {"maxArea": 49, "currentArea": 49, "width": 7}
-    },
-    {
-      "title": "Move Right Pointer",
-      "description": "heights[1]=8 > heights[8]=7, move right to 7",
-      "pointers": {"left": 1, "right": 7},
-      "highlight": [1, 7],
-      "variables": {"maxArea": 49, "left": 1, "right": 7}
-    },
-    {
-      "title": "Calculate Area 3",
-      "description": "Area = min(8,3) × 6 = 18. maxArea stays 49.",
-      "pointers": {"left": 1, "right": 7},
-      "highlight": [1, 7],
-      "variables": {"maxArea": 49, "currentArea": 18, "width": 6}
-    },
-    {
-      "title": "Move Right Pointer",
-      "description": "heights[1]=8 > heights[7]=3, move right to 6",
-      "pointers": {"left": 1, "right": 6},
-      "highlight": [1, 6],
-      "variables": {"maxArea": 49, "left": 1, "right": 6}
-    },
-    {
-      "title": "Calculate Area 4",
-      "description": "Area = min(8,8) × 5 = 40. maxArea stays 49.",
-      "pointers": {"left": 1, "right": 6},
-      "highlight": [1, 6],
-      "variables": {"maxArea": 49, "currentArea": 40, "width": 5}
-    },
-    {
-      "title": "Final Result",
-      "description": "Pointers meet. Maximum area found is 49.",
-      "pointers": {"left": 1, "right": 6},
-      "highlight": [1, 6],
-      "variables": {"maxArea": 49, "result": 49}
-    }
-  ]
-}
-
-Generate a COMPLETE visualization with ALL iterations for the given problem.
-Return ONLY the JSON object.`;
+Return ONLY the JSON.`;
   }
 }
 

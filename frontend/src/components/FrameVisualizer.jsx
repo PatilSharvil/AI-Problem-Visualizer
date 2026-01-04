@@ -83,6 +83,7 @@ function FrameVisualizer({ frames, currentFrameIndex, onPrevious, onNext }) {
             highlight={comp.highlight || []}
             pointers={comp.pointers || {}}
             window={comp.window}
+            swapIndices={comp.swap}
           />
         );
       case 'hashmap':

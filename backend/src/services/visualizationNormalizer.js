@@ -201,7 +201,8 @@ class VisualizationNormalizer {
                 subsets: Array.isArray(step.subsets) ? step.subsets : null,
                 intervals: Array.isArray(step.intervals) ? step.intervals : null,
                 tree: step.tree || null,
-                window: step.window || null
+                window: step.window || null,
+                swap: Array.isArray(step.swap) ? step.swap : null
             };
         });
     }
@@ -272,9 +273,14 @@ class VisualizationNormalizer {
     stepToFrame(step, structures, pattern) {
         const components = [];
 
-        // Add array components
+        // Add array components - use step.array if available, otherwise use struct.data
         (structures || []).forEach(struct => {
-            if (struct.type === 'array' && struct.data && struct.data.length > 0) {
+            if (struct.type === 'array') {
+                // Use step-specific array data if provided, otherwise use structure data
+                const arrayData = step.array || struct.data || [];
+
+                if (arrayData.length === 0) return;
+
                 const displayPointers = {};
                 if (step.pointers) {
                     Object.entries(step.pointers).forEach(([key, value]) => {
@@ -288,10 +294,11 @@ class VisualizationNormalizer {
                     type: 'array',
                     id: struct.id,
                     label: struct.label,
-                    data: struct.data,
+                    data: arrayData,
                     highlight: step.highlight || [],
                     pointers: displayPointers,
-                    window: step.window
+                    window: step.window,
+                    swap: step.swap
                 });
             }
         });
