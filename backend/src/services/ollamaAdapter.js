@@ -120,6 +120,28 @@ FOR QUEUE/BFS PROBLEMS - use "queue" or "bfs" pattern:
 FOR TWO POINTERS/SLIDING WINDOW:
 Use "pointers": {"left": 0, "right": 5} with "highlight" array
 
+FOR MATRIX PROBLEMS - use "matrix" pattern:
+{
+  "pattern": "matrix",
+  "structures": [],
+  "steps": [
+    {"title": "Start", "description": "At position (0,0)", "matrix": [[1,2,3],[4,5,6],[7,8,9]], "currentCell": [0,0], "variables": {}},
+    {"title": "Move right", "description": "At position (0,1)", "matrix": [[1,2,3],[4,5,6],[7,8,9]], "currentCell": [0,1], "path": [[0,0]], "variables": {}}
+  ]
+}
+
+FOR DYNAMIC PROGRAMMING - use "dp" pattern:
+{
+  "pattern": "dp",
+  "structures": [],
+  "steps": [
+    {"title": "Base case", "description": "dp[0]=0, dp[1]=1", "dp": [0,1,null,null,null], "currentCell": 1, "variables": {"n": 5}},
+    {"title": "Compute dp[2]", "description": "dp[2] = dp[0] + dp[1] = 1", "dp": [0,1,1,null,null], "currentCell": 2, "dpHighlight": [0,1], "variables": {}},
+    {"title": "Compute dp[3]", "description": "dp[3] = dp[1] + dp[2] = 2", "dp": [0,1,1,2,null], "currentCell": 3, "dpHighlight": [1,2], "variables": {}},
+    {"title": "Compute dp[4]", "description": "dp[4] = dp[2] + dp[3] = 3", "dp": [0,1,1,2,3], "currentCell": 4, "dpHighlight": [2,3], "variables": {"result": 3}}
+  ]
+}
+
 FOR PROBLEMS USING MULTIPLE DATA STRUCTURES (e.g., array + stack, array + hashmap):
 {
   "pattern": "multi_structure",
@@ -134,12 +156,13 @@ FOR PROBLEMS USING MULTIPLE DATA STRUCTURES (e.g., array + stack, array + hashma
 }
 
 CRITICAL RULES:
-1. EACH step MUST have "array" field showing the CURRENT state
-2. For linked list: use "pointers" with "prev", "curr", "next" as appropriate
-3. Include "highlight" for elements being processed
-4. Return ONLY valid JSON, no text before or after
-5. Generate 8-15 detailed steps
-6. For multiple data structures: include ALL relevant fields in each step
+1. EACH step MUST have the relevant data field showing CURRENT state
+2. For linked list: use "pointers" with "prev", "curr", "next"
+3. For matrix: use "currentCell": [row, col] and "path": [[r,c],...]
+4. For DP: use "dp" array with "currentCell" index and "dpHighlight" for dependencies
+5. Include "highlight" for elements being processed
+6. Return ONLY valid JSON, no text before or after
+7. Generate 8-15 detailed steps
 
 Return ONLY the JSON.`;
   }

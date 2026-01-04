@@ -374,6 +374,28 @@ class VisualizationNormalizer {
         if (step.subsets && Array.isArray(step.subsets) && step.subsets.length > 0) {
             components.push({ type: 'subsets', data: step.subsets });
         }
+        // Matrix support
+        if (step.matrix && Array.isArray(step.matrix)) {
+            components.push({
+                type: 'matrix',
+                data: step.matrix,
+                highlight: step.matrixHighlight || [],
+                currentCell: step.currentCell || null,
+                path: step.path || [],
+                label: 'Matrix'
+            });
+        }
+        // DP Table support
+        if (step.dpTable || step.dp) {
+            const dpData = step.dpTable || step.dp;
+            components.push({
+                type: 'dp_table',
+                data: dpData,
+                currentCell: step.currentCell || step.dpCell || null,
+                highlight: step.dpHighlight || [],
+                label: 'DP Table'
+            });
+        }
         if (step.variables && Object.keys(step.variables).length > 0) {
             components.push({ type: 'variables', items: step.variables });
         }

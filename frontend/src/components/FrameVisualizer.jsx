@@ -6,6 +6,8 @@ import StackQueueDisplay from './StackQueueDisplay';
 import SubsetsDisplay from './SubsetsDisplay';
 import HeapDisplay from './HeapDisplay';
 import LinkedListDisplay from './LinkedListDisplay';
+import MatrixDisplay from './MatrixDisplay';
+import DPTableDisplay from './DPTableDisplay';
 import './FrameVisualizer.css';
 
 function FrameVisualizer({ frames, currentFrameIndex, onPrevious, onNext }) {
@@ -101,6 +103,10 @@ function FrameVisualizer({ frames, currentFrameIndex, onPrevious, onNext }) {
         return <SubsetsDisplay key={idx} data={comp.data || []} />;
       case 'linked_list':
         return <LinkedListDisplay key={idx} data={comp.data || []} pointers={comp.pointers} highlight={comp.highlight} operation={comp.operation} />;
+      case 'matrix':
+        return <MatrixDisplay key={idx} data={comp.data || []} highlight={comp.highlight} currentCell={comp.currentCell} path={comp.path} label={comp.label} />;
+      case 'dp_table':
+        return <DPTableDisplay key={idx} data={comp.data || []} currentCell={comp.currentCell} highlight={comp.highlight} label={comp.label} />;
       case 'variables':
         return <VariablePanel key={idx} items={comp.items || {}} />;
       default:
