@@ -62,74 +62,49 @@ class OllamaAdapter extends LLMAdapterInterface {
   }
 
   buildUniversalPrompt(problemStatement) {
-    return `You are an algorithm visualization engine.
+    return `You are an algorithm visualization engine. Analyze the problem and return step-by-step visualization.
 
 PROBLEM: ${problemStatement}
 
-VERY IMPORTANT: For sorting/swapping problems, EACH STEP MUST include the CURRENT array state after any changes!
+Detect the problem type and return appropriate JSON:
 
-Return JSON:
-
+FOR SORTING/ARRAY PROBLEMS - use "sorting" or appropriate pattern:
 {
   "pattern": "sorting",
-  "structures": [
-    {"id": "arr", "type": "array", "label": "Array", "data": [5,3,8,1]}
-  ],
+  "structures": [{"id": "arr", "type": "array", "label": "Array", "data": [5,3,8,1]}],
   "steps": [
-    {
-      "title": "Initial",
-      "description": "Starting array",
-      "array": [5,3,8,1],
-      "highlight": [],
-      "variables": {}
-    },
-    {
-      "title": "Compare 5 and 3",
-      "description": "5 > 3, need to swap",
-      "array": [5,3,8,1],
-      "highlight": [0,1],
-      "variables": {"comparing": "5 vs 3"}
-    },
-    {
-      "title": "Swap 5 and 3",
-      "description": "Swapped positions 0 and 1",
-      "array": [3,5,8,1],
-      "highlight": [0,1],
-      "swap": [0,1],
-      "variables": {"swapped": true}
-    },
-    {
-      "title": "Compare 5 and 8",
-      "description": "5 < 8, no swap needed",
-      "array": [3,5,8,1],
-      "highlight": [1,2],
-      "variables": {}
-    },
-    {
-      "title": "Compare 8 and 1",
-      "description": "8 > 1, need to swap",
-      "array": [3,5,8,1],
-      "highlight": [2,3],
-      "variables": {}
-    },
-    {
-      "title": "Swap 8 and 1",
-      "description": "Swapped positions 2 and 3",
-      "array": [3,5,1,8],
-      "highlight": [2,3],
-      "swap": [2,3],
-      "variables": {}
-    }
+    {"title": "Step", "description": "...", "array": [5,3,8,1], "highlight": [0,1], "swap": [0,1], "variables": {}}
   ]
 }
 
+FOR LINKED LIST PROBLEMS - use "linked_list_reversal" or "linked_list":
+IMPORTANT: Show the reversed portion progressively! After reversing a link, update the array to show current logical order.
+{
+  "pattern": "linked_list_reversal",
+  "structures": [{"id": "list", "type": "linked_list", "label": "Linked List", "data": [1,2,3,4]}],
+  "steps": [
+    {"title": "Initial State", "description": "Original list: 1→2→3→4→null", "array": [1,2,3,4], "pointers": {"curr": 0}, "highlight": [0], "variables": {}},
+    {"title": "Setup Pointers", "description": "prev=null, curr=1, save next=2", "array": [1,2,3,4], "pointers": {"prev": -1, "curr": 0, "next": 1}, "highlight": [0], "variables": {}},
+    {"title": "Reverse Link 1→null", "description": "1.next = null (was 2)", "array": [1,2,3,4], "pointers": {"prev": 0, "curr": 1}, "highlight": [0,1], "variables": {"reversed": "1→null"}},
+    {"title": "Reverse Link 2→1", "description": "2.next = 1 (was 3)", "array": [2,1,3,4], "pointers": {"prev": 1, "curr": 2}, "highlight": [0,1], "variables": {"reversed": "2→1→null"}},
+    {"title": "Reverse Link 3→2", "description": "3.next = 2 (was 4)", "array": [3,2,1,4], "pointers": {"prev": 2, "curr": 3}, "highlight": [0,1], "variables": {"reversed": "3→2→1→null"}},
+    {"title": "Reverse Link 4→3", "description": "4.next = 3 (was null)", "array": [4,3,2,1], "pointers": {"prev": 3, "curr": -1}, "highlight": [0], "variables": {"reversed": "4→3→2→1→null"}},
+    {"title": "Complete", "description": "List fully reversed!", "array": [4,3,2,1], "pointers": {}, "highlight": [], "variables": {"result": "4→3→2→1→null"}}
+  ]
+}
+
+FOR STACK PROBLEMS:
+Include "stack": [values], "stackOperation": "push" or "pop"
+
+FOR TWO POINTERS/SLIDING WINDOW:
+Use "pointers": {"left": 0, "right": 5} with "highlight" array
+
 CRITICAL RULES:
-1. EACH step MUST have "array" field showing the CURRENT state of the array
-2. When a swap happens, the next step's "array" should show the swapped values
-3. Include "swap": [i, j] when elements swap positions
-4. Include "highlight" to show which elements are being compared/swapped
-5. Return ONLY valid JSON, no text before or after
-6. Generate 8-15 steps for sorting problems
+1. EACH step MUST have "array" field showing the CURRENT state
+2. For linked list: use "pointers" with "prev", "curr", "next" as appropriate
+3. Include "highlight" for elements being processed
+4. Return ONLY valid JSON, no text before or after
+5. Generate 8-15 detailed steps
 
 Return ONLY the JSON.`;
   }

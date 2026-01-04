@@ -5,6 +5,7 @@ import HashMapDisplay from './HashMapDisplay';
 import StackQueueDisplay from './StackQueueDisplay';
 import SubsetsDisplay from './SubsetsDisplay';
 import HeapDisplay from './HeapDisplay';
+import LinkedListDisplay from './LinkedListDisplay';
 import './FrameVisualizer.css';
 
 function FrameVisualizer({ frames, currentFrameIndex, onPrevious, onNext }) {
@@ -96,6 +97,8 @@ function FrameVisualizer({ frames, currentFrameIndex, onPrevious, onNext }) {
         return <HeapDisplay key={idx} data={comp.data || []} />;
       case 'subsets':
         return <SubsetsDisplay key={idx} data={comp.data || []} />;
+      case 'linked_list':
+        return <LinkedListDisplay key={idx} data={comp.data || []} pointers={comp.pointers} highlight={comp.highlight} operation={comp.operation} />;
       case 'variables':
         return <VariablePanel key={idx} items={comp.items || {}} />;
       default:

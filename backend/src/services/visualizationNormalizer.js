@@ -274,23 +274,38 @@ class VisualizationNormalizer {
     stepToFrame(step, structures, pattern) {
         const components = [];
 
-        // Add array components - use step.array if available, otherwise use struct.data
+        // Add array or linked_list components based on type/pattern
         (structures || []).forEach(struct => {
-            if (struct.type === 'array') {
-                // Use step-specific array data if provided, otherwise use structure data
-                const arrayData = step.array || struct.data || [];
+            // Use step-specific array data if provided, otherwise use structure data
+            const arrayData = step.array || struct.data || [];
+            if (arrayData.length === 0) return;
 
-                if (arrayData.length === 0) return;
+            const displayPointers = {};
+            if (step.pointers) {
+                Object.entries(step.pointers).forEach(([key, value]) => {
+                    if (value !== null && value !== undefined && value >= 0) {
+                        displayPointers[key] = value;
+                    }
+                });
+            }
 
-                const displayPointers = {};
-                if (step.pointers) {
-                    Object.entries(step.pointers).forEach(([key, value]) => {
-                        if (value !== null && value !== undefined && value >= 0) {
-                            displayPointers[key] = value;
-                        }
-                    });
-                }
+            // Determine if this should be rendered as linked list or array
+            const isLinkedList = struct.type === 'linked_list' ||
+                pattern?.includes('linked_list') ||
+                struct.id?.includes('list') ||
+                struct.label?.toLowerCase().includes('linked');
 
+            if (isLinkedList) {
+                components.push({
+                    type: 'linked_list',
+                    id: struct.id,
+                    label: struct.label,
+                    data: arrayData,
+                    highlight: step.highlight || [],
+                    pointers: displayPointers,
+                    operation: step.listOperation || null
+                });
+            } else if (struct.type === 'array') {
                 components.push({
                     type: 'array',
                     id: struct.id,

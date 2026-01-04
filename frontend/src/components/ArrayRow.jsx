@@ -1,62 +1,28 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './ArrayRow.css';
 
 function ArrayRow({ id, label, data, highlight, pointers, window }) {
-    // Animation phases: 'idle' -> 'start' -> 'animate' -> 'idle'
-    const [animState, setAnimState] = useState({ phase: 'idle', indices: null, transforms: {} });
+    const [swapState, setSwapState] = useState({ active: false, indices: [], oldData: null });
     const prevDataRef = useRef(null);
-    const containerRef = useRef(null);
 
+    // Detect swap between frames
     useEffect(() => {
         const oldData = prevDataRef.current;
         const newData = data;
 
-        if (oldData && newData && Array.isArray(oldData) && Array.isArray(newData)) {
+        if (oldData && newData && Array.isArray(oldData) && Array.isArray(newData) && oldData.length === newData.length) {
             const swap = detectSwap(oldData, newData);
             if (swap) {
-                console.log('Swap detected:', swap, 'Old:', oldData, 'New:', newData);
-
-                const [i, j] = swap;
-                const gap = 8;
-                const barWidth = 40;
-                const distance = Math.abs(j - i) * (barWidth + gap);
-
-                // Phase 1: Set initial positions (no transition)
-                setAnimState({
-                    phase: 'start',
-                    indices: swap,
-                    displayData: [...oldData],
-                    transforms: {
-                        [i]: 0,
-                        [j]: 0
-                    }
-                });
-
-                // Phase 2: Animate to new positions (with transition)
-                requestAnimationFrame(() => {
-                    setTimeout(() => {
-                        setAnimState(prev => ({
-                            ...prev,
-                            phase: 'animate',
-                            transforms: {
-                                [i]: i < j ? distance : -distance,
-                                [j]: j < i ? distance : -distance
-                            }
-                        }));
-                    }, 50);
-                });
-
-                // Phase 3: Complete - show new data
+                setSwapState({ active: true, indices: swap, oldData: [...oldData] });
                 setTimeout(() => {
-                    setAnimState({ phase: 'idle', indices: null, transforms: {} });
-                }, 600);
+                    setSwapState({ active: false, indices: [], oldData: null });
+                }, 500);
             }
         }
         prevDataRef.current = newData ? [...newData] : null;
     }, [JSON.stringify(data)]);
 
     const detectSwap = (oldArr, newArr) => {
-        if (oldArr.length !== newArr.length) return null;
         const changed = [];
         for (let i = 0; i < oldArr.length; i++) {
             if (String(oldArr[i]) !== String(newArr[i])) changed.push(i);
@@ -70,10 +36,10 @@ function ArrayRow({ id, label, data, highlight, pointers, window }) {
         return null;
     };
 
-    // Show animated data during animation, actual data otherwise
-    const displayData = animState.displayData || (Array.isArray(data) ? data : []);
+    // Use old data during animation
+    const displayData = swapState.active && swapState.oldData ? swapState.oldData : (Array.isArray(data) ? data : []);
 
-    if (!displayData || displayData.length === 0) {
+    if (displayData.length === 0) {
         return (
             <div className="array-row">
                 {label && <div className="array-label">{label}</div>}
@@ -82,6 +48,7 @@ function ArrayRow({ id, label, data, highlight, pointers, window }) {
         );
     }
 
+    // Calculate max value for scaling bar heights
     const maxVal = Math.max(...displayData.map(v => Math.abs(Number(v) || 0)), 1);
     const barMaxHeight = 150;
 
@@ -96,45 +63,44 @@ function ArrayRow({ id, label, data, highlight, pointers, window }) {
         return Object.entries(pointers).filter(([k, v]) => v === index).map(([k]) => k);
     };
 
-    const isSwapping = (index) => animState.indices && animState.indices.includes(index);
+    const isSwapping = (index) => swapState.active && swapState.indices.includes(index);
 
-    const getTransform = (index) => {
-        if (animState.transforms && animState.transforms[index] !== undefined) {
-            return `translateX(${animState.transforms[index]}px)`;
-        }
-        return 'translateX(0)';
-    };
+    const getSwapTransform = (index) => {
+        if (!swapState.active || !swapState.indices.includes(index)) return '';
+        const [i, j] = swapState.indices;
+        const gap = 8;
+        const barWidth = 40;
+        const distance = Math.abs(j - i) * (barWidth + gap);
 
-    const getTransitionStyle = (index) => {
-        if (animState.phase === 'animate' && isSwapping(index)) {
-            return 'transform 0.4s ease-in-out';
-        }
-        return 'none';
+        if (index === i) return `translateX(${distance}px)`;
+        if (index === j) return `translateX(-${distance}px)`;
+        return '';
     };
 
     return (
         <div className="array-row">
             {label && <div className="array-label">{label}</div>}
 
-            {animState.phase !== 'idle' && animState.indices && (
+            {swapState.active && (
                 <div className="swap-banner">
-                    🔄 Swapping indices {animState.indices[0]} ↔ {animState.indices[1]}
+                    🔄 Swapping: [{swapState.indices[0]}] ↔ [{swapState.indices[1]}]
                 </div>
             )}
 
-            <div className="bars-container" ref={containerRef}>
+            <div className="bars-container">
                 {displayData.map((item, index) => {
                     const value = Number(item) || 0;
                     const height = Math.max(20, (Math.abs(value) / maxVal) * barMaxHeight);
                     const swapping = isSwapping(index);
+                    const transform = getSwapTransform(index);
 
                     return (
                         <div
                             key={index}
                             className={`bar-wrapper ${swapping ? 'swapping' : ''}`}
                             style={{
-                                transform: getTransform(index),
-                                transition: getTransitionStyle(index),
+                                transform,
+                                transition: swapState.active ? 'transform 0.4s ease-in-out' : 'none',
                                 zIndex: swapping ? 10 : 1
                             }}
                         >
@@ -155,11 +121,6 @@ function ArrayRow({ id, label, data, highlight, pointers, window }) {
                         </div>
                     );
                 })}
-            </div>
-
-            {/* Debug info */}
-            <div style={{ fontSize: '10px', color: '#999', marginTop: '5px' }}>
-                Phase: {animState.phase} | Indices: {JSON.stringify(animState.indices)} | Data: [{displayData.join(', ')}]
             </div>
         </div>
     );
