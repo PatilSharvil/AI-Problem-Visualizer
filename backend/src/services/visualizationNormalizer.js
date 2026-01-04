@@ -190,6 +190,7 @@ class VisualizationNormalizer {
                 pointers: this.normalizePointers(step.pointers, maxLength),
                 highlight: this.normalizeHighlight(highlight, maxLength),
                 variables: step.variables || {},
+                array: Array.isArray(step.array) ? step.array : null,
                 hashmap: step.hashmap || null,
                 stack: Array.isArray(stack) ? stack : null,
                 stackOperation: step.stackOperation || null,

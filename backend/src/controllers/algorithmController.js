@@ -52,9 +52,25 @@ const classifyAlgorithm = async (req, res) => {
     const normalized = normalizer.normalize(validatedOutput);
     console.log('Normalization complete');
 
+    // Log sample step data to see if array is included
+    if (normalized.steps && normalized.steps.length > 0) {
+      console.log('Sample step 0:', JSON.stringify(normalized.steps[0]).substring(0, 200));
+      if (normalized.steps.length > 2) {
+        console.log('Sample step 2:', JSON.stringify(normalized.steps[2]).substring(0, 200));
+      }
+    }
+
     // Convert to frames
     const frames = normalizer.toFrames(normalized);
     console.log('Generated', frames.length, 'frames');
+
+    // Log sample frame data to check if array data changes between frames
+    if (frames.length > 0) {
+      const frame0Data = frames[0]?.components?.find(c => c.type === 'array')?.data;
+      const frame2Data = frames[2]?.components?.find(c => c.type === 'array')?.data;
+      console.log('Frame 0 array data:', JSON.stringify(frame0Data));
+      console.log('Frame 2 array data:', JSON.stringify(frame2Data));
+    }
 
     // Ensure we have at least one frame
     if (frames.length === 0) {
