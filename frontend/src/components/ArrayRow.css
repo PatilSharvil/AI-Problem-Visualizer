@@ -1,18 +1,47 @@
 .array-row {
   margin: 15px 0;
   padding: 20px;
-  background: #ffffff;
+  background: #fff;
   border: 2px solid #333;
   border-radius: 8px;
 }
 
-.array-label {
+.array-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #eee;
+}
+
+.array-icon {
+  font-size: 20px;
+}
+
+.array-title {
   font-size: 13px;
   font-weight: bold;
   color: #333;
   text-transform: uppercase;
-  margin-bottom: 15px;
-  letter-spacing: 0.5px;
+}
+
+.window-badge {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: bold;
+  border-radius: 4px;
+  color: white;
+  background: #8b5cf6;
+}
+
+.array-size {
+  margin-left: auto;
+  font-size: 12px;
+  color: #666;
+  background: #f3f4f6;
+  padding: 4px 10px;
+  border-radius: 4px;
 }
 
 .swap-banner {
@@ -52,10 +81,9 @@
 /* Pointer labels */
 .pointer-labels {
   position: absolute;
-  top: -28px;
+  top: -25px;
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  gap: 3px;
 }
 
 .pointer-tag {
@@ -64,20 +92,22 @@
   padding: 2px 6px;
   border-radius: 3px;
   color: white;
-  margin-bottom: 2px;
 }
 
 .pointer-tag.i,
-.pointer-tag.left {
+.pointer-tag.left,
+.pointer-tag.start {
   background: #ef4444;
 }
 
 .pointer-tag.j,
-.pointer-tag.right {
+.pointer-tag.right,
+.pointer-tag.end {
   background: #3b82f6;
 }
 
-.pointer-tag.curr {
+.pointer-tag.curr,
+.pointer-tag.mid {
   background: #10b981;
 }
 
@@ -97,9 +127,13 @@
   background: #ec4899;
 }
 
-.pointer-arrow {
-  font-size: 10px;
-  color: #666;
+.pointer-tag.pivot {
+  background: #dc2626;
+}
+
+.pointer-tag.min,
+.pointer-tag.max {
+  background: #0891b2;
 }
 
 /* Box */
@@ -109,7 +143,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #ffffff;
+  background: #fff;
   border: 2px solid #333;
   border-radius: 6px;
   font-weight: bold;
@@ -133,6 +167,31 @@
   transform: scale(1.1);
 }
 
+.array-box.changed {
+  animation: pulse-change 0.4s ease;
+}
+
+@keyframes pulse-change {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.15);
+    background: #dbeafe;
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.array-box.in-window {
+  background: #ede9fe;
+  border-color: #8b5cf6;
+  color: #5b21b6;
+}
+
 .box-index {
   font-size: 10px;
   color: #888;
@@ -144,4 +203,6 @@
   text-align: center;
   color: #999;
   font-style: italic;
+  background: #f8f9fa;
+  border-radius: 6px;
 }

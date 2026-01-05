@@ -8,11 +8,15 @@
 
 .dp-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 10px;
     margin-bottom: 15px;
     padding-bottom: 10px;
     border-bottom: 2px solid #eee;
+}
+
+.dp-icon {
+    font-size: 20px;
 }
 
 .dp-title {
@@ -22,7 +26,8 @@
     text-transform: uppercase;
 }
 
-.dp-info {
+.dp-dims {
+    margin-left: auto;
     font-size: 12px;
     color: #666;
     background: #f3f4f6;
@@ -32,19 +37,26 @@
 
 .dp-table-wrapper {
     overflow-x: auto;
-    padding: 10px;
+    padding: 15px;
     background: #f8f9fa;
     border-radius: 6px;
 }
 
 .dp-table {
     border-collapse: separate;
-    border-spacing: 3px;
+    border-spacing: 4px;
+    margin: 0 auto;
 }
 
 .dp-corner {
-    width: 35px;
-    height: 30px;
+    width: 40px;
+    height: 35px;
+    background: #e5e7eb;
+    color: #666;
+    font-size: 11px;
+    font-weight: bold;
+    border-radius: 4px;
+    text-align: center;
 }
 
 .dp-col-label,
@@ -56,30 +68,39 @@
     font-weight: bold;
     text-align: center;
     border-radius: 4px;
-}
-
-.dp-row-label {
-    min-width: 35px;
+    min-width: 40px;
 }
 
 .dp-cell {
     width: 50px;
-    height: 40px;
+    height: 45px;
     text-align: center;
     vertical-align: middle;
     background: #fff;
     border: 2px solid #ddd;
-    border-radius: 4px;
+    border-radius: 6px;
     font-weight: 600;
     font-size: 14px;
     color: #333;
     transition: all 0.2s ease;
 }
 
+.dp-cell.empty {
+    color: #ccc;
+    background: #fafafa;
+}
+
 .dp-cell.highlighted {
+    background: #fef3c7;
+    border-color: #f59e0b;
+    color: #92400e;
+}
+
+.dp-cell.dependency {
     background: #dbeafe;
     border-color: #3b82f6;
     color: #1e40af;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
 .dp-cell.current {
@@ -88,6 +109,28 @@
     color: white;
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3);
     transform: scale(1.05);
+    font-weight: bold;
+}
+
+.dp-cell.new-fill {
+    animation: fill-pulse 0.4s ease;
+}
+
+@keyframes fill-pulse {
+    0% {
+        transform: scale(1);
+        background: #d1fae5;
+    }
+
+    50% {
+        transform: scale(1.15);
+        background: #10b981;
+        color: white;
+    }
+
+    100% {
+        transform: scale(1);
+    }
 }
 
 .dp-empty {
@@ -95,4 +138,6 @@
     text-align: center;
     color: #999;
     font-style: italic;
+    background: #f8f9fa;
+    border-radius: 6px;
 }

@@ -51,10 +51,23 @@ const classifyAlgorithm = async (req, res) => {
     // Normalize
     const normalized = normalizer.normalize(validatedOutput);
     console.log('Normalization complete');
+    console.log('Steps:', normalized.steps?.length);
+    if (normalized.steps?.[0]) {
+      console.log('Step 0 keys:', Object.keys(normalized.steps[0]));
+      console.log('Step 0 result:', normalized.steps[0].result);
+      console.log('Step 0 array2:', normalized.steps[0].array2);
+    }
+    if (normalized.steps?.[2]) {
+      console.log('Step 2 keys:', Object.keys(normalized.steps[2]));
+      console.log('Step 2 result:', normalized.steps[2].result);
+    }
 
     // Convert to frames
     const frames = normalizer.toFrames(normalized);
     console.log('Generated', frames.length, 'frames');
+    if (frames[2]) {
+      console.log('Frame 2 components:', JSON.stringify(frames[2].components?.map(c => ({ type: c.type, id: c.id, data: c.data })), null, 2));
+    }
 
     // Ensure we have at least one frame
     if (frames.length === 0) {

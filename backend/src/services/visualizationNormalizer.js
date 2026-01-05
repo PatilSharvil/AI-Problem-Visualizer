@@ -191,6 +191,10 @@ class VisualizationNormalizer {
                 highlight: this.normalizeHighlight(highlight, maxLength),
                 variables: step.variables || {},
                 array: Array.isArray(step.array) ? step.array : null,
+                array2: Array.isArray(step.array2) ? step.array2 : null,
+                result: Array.isArray(step.result) ? step.result : null,
+                list1: Array.isArray(step.list1) ? step.list1 : null,
+                list2: Array.isArray(step.list2) ? step.list2 : null,
                 hashmap: step.hashmap || null,
                 stack: Array.isArray(stack) ? stack : null,
                 stackOperation: step.stackOperation || null,
@@ -203,7 +207,13 @@ class VisualizationNormalizer {
                 intervals: Array.isArray(step.intervals) ? step.intervals : null,
                 tree: step.tree || null,
                 window: step.window || null,
-                swap: Array.isArray(step.swap) ? step.swap : null
+                swap: Array.isArray(step.swap) ? step.swap : null,
+                matrix: Array.isArray(step.matrix) ? step.matrix : null,
+                dp: Array.isArray(step.dp) ? step.dp : null,
+                dpTable: Array.isArray(step.dpTable) ? step.dpTable : null,
+                currentCell: step.currentCell || null,
+                dpHighlight: Array.isArray(step.dpHighlight) ? step.dpHighlight : null,
+                path: Array.isArray(step.path) ? step.path : null
             };
         });
     }
@@ -277,14 +287,31 @@ class VisualizationNormalizer {
         // Add array or linked_list components based on type/pattern
         (structures || []).forEach(struct => {
             // Use step-specific array data if provided, otherwise use structure data
-            const arrayData = step.array || struct.data || [];
-            if (arrayData.length === 0) return;
+            // Get correct data based on structure ID
+            let arrayData;
+            if (struct.id === 'arr2' || struct.id === 'array2') {
+                arrayData = step.array2 || struct.data || [];
+            } else if (struct.id === 'result') {
+                arrayData = step.result || struct.data || [];
+            } else {
+                arrayData = step.array || struct.data || [];
+            }
+            if (arrayData.length === 0 && struct.id !== 'result') return;
 
             const displayPointers = {};
             if (step.pointers) {
                 Object.entries(step.pointers).forEach(([key, value]) => {
-                    if (value !== null && value !== undefined && value >= 0) {
-                        displayPointers[key] = value;
+                    // Assign pointers to correct array
+                    if (struct.id === 'arr2' || struct.id === 'array2') {
+                        if (key === 'j' && value !== null && value !== undefined && value >= 0) {
+                            displayPointers[key] = value;
+                        }
+                    } else if (struct.id !== 'result') {
+                        if (key === 'i' && value !== null && value !== undefined && value >= 0) {
+                            displayPointers[key] = value;
+                        } else if (key !== 'j' && value !== null && value !== undefined && value >= 0) {
+                            displayPointers[key] = value;
+                        }
                     }
                 });
             }
@@ -347,6 +374,64 @@ class VisualizationNormalizer {
                 });
             }
         });
+
+        // CRITICAL: Handle array2 and result from step data (for merge operations)
+        // This must happen AFTER the structures loop and override any previous values
+
+        // Array 2 - for merge operations
+        if (step.array2 && Array.isArray(step.array2)) {
+            // Remove any existing array2 entries
+            const existingIdx = components.findIndex(c => c.id === 'arr2' || c.id === 'array2');
+            if (existingIdx !== -1) components.splice(existingIdx, 1);
+
+            components.push({
+                type: 'array',
+                id: 'array2',
+                label: 'Array 2',
+                data: step.array2,
+                highlight: [],
+                pointers: step.pointers?.j !== undefined ? { j: step.pointers.j } : {}
+            });
+        }
+
+        // Result array - for merge operations
+        if (step.result && Array.isArray(step.result)) {
+            // Remove any existing result entries (which may be empty from structures)
+            const resultIdx = components.findIndex(c => c.id === 'result');
+            if (resultIdx !== -1) components.splice(resultIdx, 1);
+
+            components.push({
+                type: 'array',
+                id: 'result',
+                label: 'Result',
+                data: step.result,
+                highlight: step.result.length > 0 ? [step.result.length - 1] : []
+            });
+        }
+
+        // List 1 - for linked list merge operations
+        if (step.list1 && Array.isArray(step.list1)) {
+            components.push({
+                type: 'linked_list',
+                id: 'list1',
+                label: 'List 1',
+                data: step.list1,
+                highlight: [],
+                pointers: step.pointers?.p1 !== undefined ? { p1: step.pointers.p1 } : {}
+            });
+        }
+
+        // List 2 - for linked list merge operations
+        if (step.list2 && Array.isArray(step.list2)) {
+            components.push({
+                type: 'linked_list',
+                id: 'list2',
+                label: 'List 2',
+                data: step.list2,
+                highlight: [],
+                pointers: step.pointers?.p2 !== undefined ? { p2: step.pointers.p2 } : {}
+            });
+        }
 
         // Add other components
         if (step.hashmap && typeof step.hashmap === 'object' && Object.keys(step.hashmap).length > 0) {

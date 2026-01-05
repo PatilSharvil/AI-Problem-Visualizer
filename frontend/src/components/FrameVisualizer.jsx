@@ -106,7 +106,7 @@ function FrameVisualizer({ frames, currentFrameIndex, onPrevious, onNext }) {
       case 'matrix':
         return <MatrixDisplay key={idx} data={comp.data || []} highlight={comp.highlight} currentCell={comp.currentCell} path={comp.path} label={comp.label} />;
       case 'dp_table':
-        return <DPTableDisplay key={idx} data={comp.data || []} currentCell={comp.currentCell} highlight={comp.highlight} label={comp.label} />;
+        return <DPTableDisplay key={idx} data={comp.data || []} currentCell={comp.currentCell} highlight={comp.highlight} dependencies={comp.highlight} label={comp.label} />;
       case 'variables':
         return <VariablePanel key={idx} items={comp.items || {}} />;
       default:

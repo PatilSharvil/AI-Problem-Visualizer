@@ -17,7 +17,7 @@ class OllamaAdapter extends LLMAdapterInterface {
           model: this.model,
           prompt: this.buildUniversalPrompt(prompt),
           stream: false,
-          options: { temperature: 0 }
+          options: { temperature: 0.1 }
         })
       });
 
@@ -64,116 +64,60 @@ class OllamaAdapter extends LLMAdapterInterface {
   buildUniversalPrompt(problemStatement) {
     return `You are an algorithm visualization engine. Analyze the problem and return step-by-step visualization.
 
+CRITICAL: Use the ACTUAL values from the problem. DO NOT use example values like [1,3,5] or [2,4,6]. Extract the real data from the problem statement.
+
 PROBLEM: ${problemStatement}
 
-Detect the problem type and return appropriate JSON:
+Return JSON with this structure based on problem type:
 
-FOR SORTING/ARRAY PROBLEMS - use "sorting" or appropriate pattern:
+FOR ARRAY PROBLEMS (sorting, searching, two pointers):
+- pattern: "sorting" or "two_pointers" or "sliding_window"
+- structures: [{id: "arr", type: "array", label: "Array", data: <ACTUAL_ARRAY_FROM_PROBLEM>}]
+- steps: Show each comparison/swap with array, highlight, pointers, variables
+
+FOR MERGE PROBLEMS:
+- pattern: "merge"
+- structures: [{id: "arr1", type: "array", label: "Array 1", data: <FIRST_ARRAY>}, {id: "arr2", type: "array", label: "Array 2", data: <SECOND_ARRAY>}, {id: "result", type: "array", label: "Result", data: []}]
+- steps: Each step must have array, array2, result, pointers: {i, j}
+
+FOR LINKED LIST:
+- pattern: "linked_list" or "linked_list_reversal"
+- structures: [{id: "list", type: "linked_list", label: "Linked List", data: <ACTUAL_LIST>}]
+- steps: Show array field updating, use pointers: {prev, curr, next}
+
+FOR LINKED LIST MERGE:
+- pattern: "linked_list_merge"
+- structures: []
+- steps: Each step must have list1, list2, array (merged result), pointers: {p1, p2}
+- Example step: {"title": "Compare", "description": "1 < 2, take 1", "list1": [1,3,5], "list2": [2,4,6], "array": [1], "pointers": {"p1": 0, "p2": 0}}
+
+FOR DP PROBLEMS:
+- pattern: "dp"
+- structures: []
+- steps: Each step has dp array with currentCell index and dpHighlight for dependencies
+
+EXAMPLE for "Merge [1,3,5,7] and [2,4,6,8]":
 {
-  "pattern": "sorting",
-  "structures": [{"id": "arr", "type": "array", "label": "Array", "data": [5,3,8,1]}],
-  "steps": [
-    {"title": "Step", "description": "...", "array": [5,3,8,1], "highlight": [0,1], "swap": [0,1], "variables": {}}
-  ]
-}
-
-FOR LINKED LIST PROBLEMS - use "linked_list" pattern:
-IMPORTANT: For sorting/swapping, update the array to show new order after each swap!
-{
-  "pattern": "linked_list",
-  "structures": [{"id": "list", "type": "linked_list", "label": "Linked List", "data": [4,2,1,3]}],
-  "steps": [
-    {"title": "Initial", "description": "Unsorted list", "array": [4,2,1,3], "pointers": {"curr": 0}, "highlight": [0,1], "variables": {}},
-    {"title": "Compare 4 and 2", "description": "4 > 2, need to swap", "array": [4,2,1,3], "pointers": {"i": 0, "j": 1}, "highlight": [0,1], "variables": {}},
-    {"title": "Swap 4 and 2", "description": "Swapped positions", "array": [2,4,1,3], "pointers": {"i": 0, "j": 1}, "highlight": [0,1], "variables": {"swapped": true}},
-    {"title": "Compare 4 and 1", "description": "4 > 1, need to swap", "array": [2,4,1,3], "pointers": {"i": 1, "j": 2}, "highlight": [1,2], "variables": {}},
-    {"title": "Swap 4 and 1", "description": "Swapped positions", "array": [2,1,4,3], "pointers": {"i": 1, "j": 2}, "highlight": [1,2], "variables": {}},
-    {"title": "Continue sorting", "description": "...", "array": [1,2,3,4], "pointers": {}, "highlight": [], "variables": {"sorted": true}}
-  ]
-}
-
-FOR LINKED LIST REVERSAL - use "linked_list_reversal" pattern:
-{
-  "pattern": "linked_list_reversal",
-  "structures": [{"id": "list", "type": "linked_list", "label": "Linked List", "data": [1,2,3,4]}],
-  "steps": [
-    {"title": "Initial", "description": "1→2→3→4→null", "array": [1,2,3,4], "pointers": {"curr": 0}, "highlight": [0], "variables": {}},
-    {"title": "Reverse 1→null", "description": "Move to next", "array": [1,2,3,4], "pointers": {"prev": 0, "curr": 1}, "highlight": [0,1], "variables": {}},
-    {"title": "Reverse 2→1", "description": "2.next = 1", "array": [2,1,3,4], "pointers": {"prev": 1, "curr": 2}, "highlight": [0,1], "variables": {}},
-    {"title": "Complete", "description": "Fully reversed", "array": [4,3,2,1], "pointers": {}, "highlight": [], "variables": {}}
-  ]
-}
-
-FOR STACK PROBLEMS - use "stack" pattern:
-{
-  "pattern": "stack",
-  "structures": [{"id": "stack", "type": "stack", "label": "Stack", "data": []}],
-  "steps": [
-    {"title": "Push 5", "description": "Adding 5 to stack", "array": [5], "stackOperation": "push", "stackOperationValue": 5, "variables": {"top": 5}},
-    {"title": "Push 3", "description": "Adding 3 to stack", "array": [5,3], "stackOperation": "push", "stackOperationValue": 3, "variables": {"top": 3}},
-    {"title": "Push 8", "description": "Adding 8 to stack", "array": [5,3,8], "stackOperation": "push", "stackOperationValue": 8, "variables": {"top": 8}},
-    {"title": "Pop", "description": "Removing top element 8", "array": [5,3], "stackOperation": "pop", "stackOperationValue": 8, "variables": {"popped": 8, "top": 3}},
-    {"title": "Peek", "description": "Looking at top: 3", "array": [5,3], "stackOperation": "peek", "stackOperationValue": 3, "variables": {"top": 3}}
-  ]
-}
-
-FOR QUEUE/BFS PROBLEMS - use "queue" or "bfs" pattern:
-{
-  "pattern": "queue",
-  "structures": [{"id": "queue", "type": "queue", "label": "Queue", "data": []}],
-  "steps": [
-    {"title": "Enqueue 1", "description": "Adding 1 to queue", "array": [1], "queueOperation": "enqueue", "queueOperationValue": 1, "variables": {}},
-    {"title": "Enqueue 2", "description": "Adding 2 to queue", "array": [1,2], "queueOperation": "enqueue", "queueOperationValue": 2, "variables": {}},
-    {"title": "Dequeue", "description": "Removing front element 1", "array": [2], "queueOperation": "dequeue", "queueOperationValue": 1, "variables": {"processed": 1}}
-  ]
-}
-
-FOR TWO POINTERS/SLIDING WINDOW:
-Use "pointers": {"left": 0, "right": 5} with "highlight" array
-
-FOR MATRIX PROBLEMS - use "matrix" pattern:
-{
-  "pattern": "matrix",
-  "structures": [],
-  "steps": [
-    {"title": "Start", "description": "At position (0,0)", "matrix": [[1,2,3],[4,5,6],[7,8,9]], "currentCell": [0,0], "variables": {}},
-    {"title": "Move right", "description": "At position (0,1)", "matrix": [[1,2,3],[4,5,6],[7,8,9]], "currentCell": [0,1], "path": [[0,0]], "variables": {}}
-  ]
-}
-
-FOR DYNAMIC PROGRAMMING - use "dp" pattern:
-{
-  "pattern": "dp",
-  "structures": [],
-  "steps": [
-    {"title": "Base case", "description": "dp[0]=0, dp[1]=1", "dp": [0,1,null,null,null], "currentCell": 1, "variables": {"n": 5}},
-    {"title": "Compute dp[2]", "description": "dp[2] = dp[0] + dp[1] = 1", "dp": [0,1,1,null,null], "currentCell": 2, "dpHighlight": [0,1], "variables": {}},
-    {"title": "Compute dp[3]", "description": "dp[3] = dp[1] + dp[2] = 2", "dp": [0,1,1,2,null], "currentCell": 3, "dpHighlight": [1,2], "variables": {}},
-    {"title": "Compute dp[4]", "description": "dp[4] = dp[2] + dp[3] = 3", "dp": [0,1,1,2,3], "currentCell": 4, "dpHighlight": [2,3], "variables": {"result": 3}}
-  ]
-}
-
-FOR PROBLEMS USING MULTIPLE DATA STRUCTURES (e.g., array + stack, array + hashmap):
-{
-  "pattern": "multi_structure",
+  "pattern": "merge",
   "structures": [
-    {"id": "arr", "type": "array", "label": "Input Array", "data": [2,7,11,15]},
-    {"id": "map", "type": "hashmap", "label": "HashMap", "data": {}}
+    {"id": "arr1", "type": "array", "label": "Array 1", "data": [1,3,5,7]},
+    {"id": "arr2", "type": "array", "label": "Array 2", "data": [2,4,6,8]},
+    {"id": "result", "type": "array", "label": "Result", "data": []}
   ],
   "steps": [
-    {"title": "Step 1", "description": "...", "array": [2,7,11,15], "hashmap": {}, "highlight": [0], "variables": {}},
-    {"title": "Step 2", "description": "...", "array": [2,7,11,15], "hashmap": {"2": 0}, "highlight": [1], "variables": {}}
+    {"title": "Compare 1 vs 2", "description": "1 < 2, take 1", "array": [1,3,5,7], "array2": [2,4,6,8], "result": [1], "pointers": {"i": 0, "j": 0}, "variables": {}},
+    {"title": "Compare 3 vs 2", "description": "3 > 2, take 2", "array": [1,3,5,7], "array2": [2,4,6,8], "result": [1,2], "pointers": {"i": 1, "j": 0}, "variables": {}},
+    {"title": "Compare 3 vs 4", "description": "3 < 4, take 3", "array": [1,3,5,7], "array2": [2,4,6,8], "result": [1,2,3], "pointers": {"i": 1, "j": 1}, "variables": {}},
+    {"title": "Compare 5 vs 4", "description": "5 > 4, take 4", "array": [1,3,5,7], "array2": [2,4,6,8], "result": [1,2,3,4], "pointers": {"i": 2, "j": 1}, "variables": {}},
+    {"title": "Complete", "description": "Merged!", "array": [1,3,5,7], "array2": [2,4,6,8], "result": [1,2,3,4,5,6,7,8], "pointers": {}, "variables": {"result": "[1,2,3,4,5,6,7,8]"}}
   ]
 }
 
-CRITICAL RULES:
-1. EACH step MUST have the relevant data field showing CURRENT state
-2. For linked list: use "pointers" with "prev", "curr", "next"
-3. For matrix: use "currentCell": [row, col] and "path": [[r,c],...]
-4. For DP: use "dp" array with "currentCell" index and "dpHighlight" for dependencies
-5. Include "highlight" for elements being processed
-6. Return ONLY valid JSON, no text before or after
-7. Generate 8-15 detailed steps
+RULES:
+1. Use ACTUAL values from the problem, not example values
+2. Each step MUST have the data field (array, dp, etc.) showing current state
+3. Generate 8-15 detailed steps
+4. Return ONLY valid JSON, no text before or after
 
 Return ONLY the JSON.`;
   }
