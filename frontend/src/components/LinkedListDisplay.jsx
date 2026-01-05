@@ -3,26 +3,49 @@ import './LinkedListDisplay.css';
 
 function LinkedListDisplay({ data, pointers, highlight, operation, swap }) {
   const [swapState, setSwapState] = useState({ active: false, indices: [], oldData: null });
-  const [animatedNodes, setAnimatedNodes] = useState(new Set());
+  const [removedIndices, setRemovedIndices] = useState([]);
+  const [displayData, setDisplayData] = useState([]);
   const prevDataRef = useRef(null);
 
-  // Detect swap between frames
   useEffect(() => {
     const oldData = prevDataRef.current;
-    const newData = data;
+    const newData = Array.isArray(data) ? data : [];
 
-    if (oldData && newData && Array.isArray(oldData) && Array.isArray(newData) && oldData.length === newData.length) {
-      const detectedSwap = detectSwap(oldData, newData);
-      if (detectedSwap) {
-        setSwapState({ active: true, indices: detectedSwap, oldData: [...oldData] });
-        setAnimatedNodes(new Set(detectedSwap));
-        setTimeout(() => {
-          setSwapState({ active: false, indices: [], oldData: null });
-          setAnimatedNodes(new Set());
-        }, 500);
+    if (oldData && oldData.length > 0) {
+      // Detect swap (same length, two elements changed positions)
+      if (oldData.length === newData.length) {
+        const swap = detectSwap(oldData, newData);
+        if (swap) {
+          setDisplayData([...oldData]);
+          setSwapState({ active: true, indices: swap, oldData: [...oldData] });
+          setTimeout(() => {
+            setSwapState({ active: false, indices: [], oldData: null });
+            setDisplayData(newData);
+          }, 500);
+          prevDataRef.current = newData;
+          return;
+        }
+      }
+
+      // Detect removal (length decreased)
+      if (newData.length < oldData.length) {
+        // Find which indices were removed
+        const removed = findRemovedIndices(oldData, newData);
+        if (removed.length > 0) {
+          setDisplayData([...oldData]);
+          setRemovedIndices(removed);
+          setTimeout(() => {
+            setRemovedIndices([]);
+            setDisplayData(newData);
+          }, 500);
+          prevDataRef.current = newData;
+          return;
+        }
       }
     }
-    prevDataRef.current = newData ? [...newData] : null;
+
+    setDisplayData(newData);
+    prevDataRef.current = newData;
   }, [JSON.stringify(data)]);
 
   const detectSwap = (oldArr, newArr) => {
@@ -39,8 +62,18 @@ function LinkedListDisplay({ data, pointers, highlight, operation, swap }) {
     return null;
   };
 
-  // Use old data during swap animation
-  const displayData = swapState.active && swapState.oldData ? swapState.oldData : (Array.isArray(data) ? data : []);
+  const findRemovedIndices = (oldArr, newArr) => {
+    const removed = [];
+    let newIdx = 0;
+    for (let oldIdx = 0; oldIdx < oldArr.length; oldIdx++) {
+      if (newIdx < newArr.length && String(oldArr[oldIdx]) === String(newArr[newIdx])) {
+        newIdx++;
+      } else {
+        removed.push(oldIdx);
+      }
+    }
+    return removed;
+  };
 
   if (displayData.length === 0) {
     return (
@@ -64,11 +97,12 @@ function LinkedListDisplay({ data, pointers, highlight, operation, swap }) {
   };
 
   const isSwapping = (index) => swapState.active && swapState.indices.includes(index);
+  const isBeingRemoved = (index) => removedIndices.includes(index);
 
   const getSwapTransform = (index) => {
     if (!swapState.active || !swapState.indices.includes(index)) return '';
     const [i, j] = swapState.indices;
-    const nodeWidth = 90; // node width + arrow width
+    const nodeWidth = 90;
     const distance = Math.abs(j - i) * nodeWidth;
 
     if (index === i) return `translateX(${distance}px)`;
@@ -82,12 +116,18 @@ function LinkedListDisplay({ data, pointers, highlight, operation, swap }) {
         <span className="ll-icon">🔗</span>
         <span className="ll-title">Linked List</span>
         {operation && <span className="ll-op-badge">{operation}</span>}
-        <span className="ll-size">Length: {displayData.length}</span>
+        <span className="ll-size">Length: {data?.length || 0}</span>
       </div>
 
       {swapState.active && (
         <div className="ll-swap-banner">
-          🔄 Swapping nodes: [{swapState.indices[0]}] ↔ [{swapState.indices[1]}]
+          🔄 Swapping: [{swapState.indices[0]}] ↔ [{swapState.indices[1]}]
+        </div>
+      )}
+
+      {removedIndices.length > 0 && (
+        <div className="ll-remove-banner">
+          ❌ Removing node(s): {removedIndices.map(i => `[${i}]`).join(', ')}
         </div>
       )}
 
@@ -99,19 +139,19 @@ function LinkedListDisplay({ data, pointers, highlight, operation, swap }) {
           const pointerLabels = getPointerLabels(index);
           const isLast = index === displayData.length - 1;
           const swapping = isSwapping(index);
+          const removing = isBeingRemoved(index);
           const transform = getSwapTransform(index);
 
           return (
             <React.Fragment key={index}>
               <div
-                className={`ll-node-wrapper ${swapping ? 'swapping' : ''}`}
+                className={`ll-node-wrapper ${swapping ? 'swapping' : ''} ${removing ? 'removing' : ''}`}
                 style={{
                   transform,
                   transition: swapState.active ? 'transform 0.4s ease-in-out' : 'none',
-                  zIndex: swapping ? 10 : 1
+                  zIndex: swapping || removing ? 10 : 1
                 }}
               >
-                {/* Pointer labels */}
                 {pointerLabels.length > 0 && (
                   <div className="ll-ptr-labels">
                     {pointerLabels.map(p => (
@@ -120,8 +160,7 @@ function LinkedListDisplay({ data, pointers, highlight, operation, swap }) {
                   </div>
                 )}
 
-                {/* Node */}
-                <div className={`ll-node ${highlighted ? 'highlighted' : ''} ${swapping ? 'swap-active' : ''}`}>
+                <div className={`ll-node ${highlighted ? 'highlighted' : ''} ${swapping ? 'swap-active' : ''} ${removing ? 'remove-active' : ''}`}>
                   <div className="ll-value">{String(item)}</div>
                   <div className="ll-next-ptr">{isLast ? '∅' : '→'}</div>
                 </div>
@@ -129,8 +168,7 @@ function LinkedListDisplay({ data, pointers, highlight, operation, swap }) {
                 <div className="ll-idx">{index}</div>
               </div>
 
-              {/* Arrow connector */}
-              {!isLast && <div className="ll-arrow">→</div>}
+              {!isLast && <div className={`ll-arrow ${removing ? 'fade-out' : ''}`}>→</div>}
             </React.Fragment>
           );
         })}

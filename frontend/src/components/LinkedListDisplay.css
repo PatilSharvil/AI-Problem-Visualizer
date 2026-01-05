@@ -15,7 +15,9 @@
   border-bottom: 2px solid #eee;
 }
 
-.ll-icon { font-size: 20px; }
+.ll-icon {
+  font-size: 20px;
+}
 
 .ll-title {
   font-size: 13px;
@@ -54,6 +56,18 @@
   font-size: 13px;
 }
 
+.ll-remove-banner {
+  text-align: center;
+  padding: 8px 15px;
+  margin-bottom: 15px;
+  background: #fee2e2;
+  border: 2px solid #ef4444;
+  border-radius: 6px;
+  font-weight: bold;
+  color: #dc2626;
+  font-size: 13px;
+}
+
 .ll-container {
   display: flex;
   align-items: center;
@@ -81,10 +95,32 @@
   flex-direction: column;
   align-items: center;
   position: relative;
+  transition: all 0.4s ease;
 }
 
 .ll-node-wrapper.swapping {
   z-index: 10;
+}
+
+.ll-node-wrapper.removing {
+  animation: fadeAndShrink 0.5s ease forwards;
+}
+
+@keyframes fadeAndShrink {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: scale(1.1) translateY(-10px);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(0.5) translateY(-20px);
+  }
 }
 
 /* Pointer labels */
@@ -103,13 +139,33 @@
   color: white;
 }
 
-.ll-ptr.prev { background: #f59e0b; }
-.ll-ptr.curr { background: #10b981; }
-.ll-ptr.next { background: #3b82f6; }
-.ll-ptr.slow { background: #8b5cf6; }
-.ll-ptr.fast { background: #ec4899; }
-.ll-ptr.i { background: #ef4444; }
-.ll-ptr.j { background: #3b82f6; }
+.ll-ptr.prev {
+  background: #f59e0b;
+}
+
+.ll-ptr.curr {
+  background: #10b981;
+}
+
+.ll-ptr.next {
+  background: #3b82f6;
+}
+
+.ll-ptr.slow {
+  background: #8b5cf6;
+}
+
+.ll-ptr.fast {
+  background: #ec4899;
+}
+
+.ll-ptr.i {
+  background: #ef4444;
+}
+
+.ll-ptr.j {
+  background: #3b82f6;
+}
 
 /* Node */
 .ll-node {
@@ -132,6 +188,12 @@
   transform: scale(1.05);
 }
 
+.ll-node.remove-active {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.3);
+  background: #fee2e2;
+}
+
 .ll-value {
   width: 45px;
   height: 38px;
@@ -150,6 +212,11 @@
 
 .ll-node.swap-active .ll-value {
   background: #10b981;
+}
+
+.ll-node.remove-active .ll-value {
+  background: #ef4444;
+  text-decoration: line-through;
 }
 
 .ll-next-ptr {
@@ -174,6 +241,11 @@
   font-size: 20px;
   color: #666;
   margin: 0 5px;
+  transition: opacity 0.3s ease;
+}
+
+.ll-arrow.fade-out {
+  opacity: 0.3;
 }
 
 .ll-null-marker {
