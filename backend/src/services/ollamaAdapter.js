@@ -77,19 +77,30 @@ FOR SORTING/ARRAY PROBLEMS - use "sorting" or appropriate pattern:
   ]
 }
 
-FOR LINKED LIST PROBLEMS - use "linked_list_reversal" or "linked_list":
-IMPORTANT: Show the reversed portion progressively! After reversing a link, update the array to show current logical order.
+FOR LINKED LIST PROBLEMS - use "linked_list" pattern:
+IMPORTANT: For sorting/swapping, update the array to show new order after each swap!
+{
+  "pattern": "linked_list",
+  "structures": [{"id": "list", "type": "linked_list", "label": "Linked List", "data": [4,2,1,3]}],
+  "steps": [
+    {"title": "Initial", "description": "Unsorted list", "array": [4,2,1,3], "pointers": {"curr": 0}, "highlight": [0,1], "variables": {}},
+    {"title": "Compare 4 and 2", "description": "4 > 2, need to swap", "array": [4,2,1,3], "pointers": {"i": 0, "j": 1}, "highlight": [0,1], "variables": {}},
+    {"title": "Swap 4 and 2", "description": "Swapped positions", "array": [2,4,1,3], "pointers": {"i": 0, "j": 1}, "highlight": [0,1], "variables": {"swapped": true}},
+    {"title": "Compare 4 and 1", "description": "4 > 1, need to swap", "array": [2,4,1,3], "pointers": {"i": 1, "j": 2}, "highlight": [1,2], "variables": {}},
+    {"title": "Swap 4 and 1", "description": "Swapped positions", "array": [2,1,4,3], "pointers": {"i": 1, "j": 2}, "highlight": [1,2], "variables": {}},
+    {"title": "Continue sorting", "description": "...", "array": [1,2,3,4], "pointers": {}, "highlight": [], "variables": {"sorted": true}}
+  ]
+}
+
+FOR LINKED LIST REVERSAL - use "linked_list_reversal" pattern:
 {
   "pattern": "linked_list_reversal",
   "structures": [{"id": "list", "type": "linked_list", "label": "Linked List", "data": [1,2,3,4]}],
   "steps": [
-    {"title": "Initial State", "description": "Original list: 1→2→3→4→null", "array": [1,2,3,4], "pointers": {"curr": 0}, "highlight": [0], "variables": {}},
-    {"title": "Setup Pointers", "description": "prev=null, curr=1, save next=2", "array": [1,2,3,4], "pointers": {"prev": -1, "curr": 0, "next": 1}, "highlight": [0], "variables": {}},
-    {"title": "Reverse Link 1→null", "description": "1.next = null (was 2)", "array": [1,2,3,4], "pointers": {"prev": 0, "curr": 1}, "highlight": [0,1], "variables": {"reversed": "1→null"}},
-    {"title": "Reverse Link 2→1", "description": "2.next = 1 (was 3)", "array": [2,1,3,4], "pointers": {"prev": 1, "curr": 2}, "highlight": [0,1], "variables": {"reversed": "2→1→null"}},
-    {"title": "Reverse Link 3→2", "description": "3.next = 2 (was 4)", "array": [3,2,1,4], "pointers": {"prev": 2, "curr": 3}, "highlight": [0,1], "variables": {"reversed": "3→2→1→null"}},
-    {"title": "Reverse Link 4→3", "description": "4.next = 3 (was null)", "array": [4,3,2,1], "pointers": {"prev": 3, "curr": -1}, "highlight": [0], "variables": {"reversed": "4→3→2→1→null"}},
-    {"title": "Complete", "description": "List fully reversed!", "array": [4,3,2,1], "pointers": {}, "highlight": [], "variables": {"result": "4→3→2→1→null"}}
+    {"title": "Initial", "description": "1→2→3→4→null", "array": [1,2,3,4], "pointers": {"curr": 0}, "highlight": [0], "variables": {}},
+    {"title": "Reverse 1→null", "description": "Move to next", "array": [1,2,3,4], "pointers": {"prev": 0, "curr": 1}, "highlight": [0,1], "variables": {}},
+    {"title": "Reverse 2→1", "description": "2.next = 1", "array": [2,1,3,4], "pointers": {"prev": 1, "curr": 2}, "highlight": [0,1], "variables": {}},
+    {"title": "Complete", "description": "Fully reversed", "array": [4,3,2,1], "pointers": {}, "highlight": [], "variables": {}}
   ]
 }
 

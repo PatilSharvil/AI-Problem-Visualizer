@@ -1,76 +1,90 @@
 .linked-list {
   margin: 15px 0;
   padding: 20px;
-  background: #ffffff;
+  background: #fff;
   border: 2px solid #333;
   border-radius: 8px;
 }
 
-.ll-label {
+.ll-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #eee;
+}
+
+.ll-icon { font-size: 20px; }
+
+.ll-title {
   font-size: 13px;
   font-weight: bold;
   color: #333;
   text-transform: uppercase;
+}
+
+.ll-op-badge {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: bold;
+  border-radius: 4px;
+  color: white;
+  background: #6366f1;
+}
+
+.ll-size {
+  margin-left: auto;
+  font-size: 12px;
+  color: #666;
+  background: #f3f4f6;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.ll-swap-banner {
+  text-align: center;
+  padding: 8px 15px;
   margin-bottom: 15px;
-  letter-spacing: 0.5px;
+  background: #d1fae5;
+  border: 2px solid #10b981;
+  border-radius: 6px;
+  font-weight: bold;
+  color: #059669;
+  font-size: 13px;
 }
 
 .ll-container {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 25px 15px 15px;
+  gap: 0;
+  padding: 25px 15px;
   background: #f8f9fa;
   border-radius: 6px;
   overflow-x: auto;
   min-height: 100px;
 }
 
-.ll-head {
+.ll-head-marker {
   font-size: 11px;
   font-weight: bold;
-  color: #28a745;
+  color: #10b981;
+  background: #d1fae5;
   padding: 4px 8px;
-  background: #d4edda;
   border-radius: 4px;
+  margin-right: 10px;
+  white-space: nowrap;
 }
 
-.ll-arrow-simple {
-  font-size: 24px;
-  color: #666;
-  font-weight: bold;
-  margin: 0 3px;
-  line-height: 1;
-}
-
-.ll-node-box {
+.ll-node-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
-  transition: transform 0.3s ease;
 }
 
-.ll-node-box.animate {
-  animation: nodePopIn 0.3s ease-out;
-}
-
-.ll-node-box.highlighted {
-  transform: scale(1.08);
-}
-
-@keyframes nodePopIn {
-  0% {
-    transform: scale(0.9);
-  }
-
-  50% {
-    transform: scale(1.12);
-  }
-
-  100% {
-    transform: scale(1);
-  }
+.ll-node-wrapper.swapping {
+  z-index: 10;
 }
 
 /* Pointer labels */
@@ -78,8 +92,7 @@
   position: absolute;
   top: -25px;
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  gap: 3px;
 }
 
 .ll-ptr {
@@ -88,91 +101,90 @@
   padding: 2px 6px;
   border-radius: 3px;
   color: white;
-  margin-bottom: 2px;
 }
 
-.ll-ptr.prev {
-  background: #fd7e14;
-}
+.ll-ptr.prev { background: #f59e0b; }
+.ll-ptr.curr { background: #10b981; }
+.ll-ptr.next { background: #3b82f6; }
+.ll-ptr.slow { background: #8b5cf6; }
+.ll-ptr.fast { background: #ec4899; }
+.ll-ptr.i { background: #ef4444; }
+.ll-ptr.j { background: #3b82f6; }
 
-.ll-ptr.curr {
-  background: #28a745;
-}
-
-.ll-ptr.next {
-  background: #007bff;
-}
-
-.ll-ptr.slow {
-  background: #6f42c1;
-}
-
-.ll-ptr.fast {
-  background: #e83e8c;
-}
-
-.ll-ptr-arrow {
-  font-size: 10px;
-  color: #666;
-}
-
-/* Node content */
-.ll-node-content {
+/* Node */
+.ll-node {
   display: flex;
   border: 2px solid #333;
   border-radius: 6px;
   overflow: hidden;
   background: white;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
-.ll-node-box.highlighted .ll-node-content {
-  border-color: #28a745;
-  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
+.ll-node.highlighted {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.3);
+}
+
+.ll-node.swap-active {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3);
+  transform: scale(1.05);
 }
 
 .ll-value {
   width: 45px;
-  height: 40px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  font-size: 16px;
+  font-size: 15px;
   background: #4a90d9;
   color: white;
-  border-right: 2px solid #333;
 }
 
-.ll-node-box.highlighted .ll-value {
-  background: #28a745;
+.ll-node.highlighted .ll-value {
+  background: #f59e0b;
 }
 
-.ll-next {
+.ll-node.swap-active .ll-value {
+  background: #10b981;
+}
+
+.ll-next-ptr {
   width: 25px;
-  height: 40px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  background: #f1f1f1;
+  background: #f1f5f9;
   color: #666;
+  font-size: 14px;
+  border-left: 2px solid #333;
 }
 
-.ll-index {
+.ll-idx {
   font-size: 10px;
   color: #888;
   margin-top: 5px;
 }
 
-.ll-null {
+.ll-arrow {
+  font-size: 20px;
+  color: #666;
+  margin: 0 5px;
+}
+
+.ll-null-marker {
   font-size: 11px;
   font-weight: bold;
   color: #888;
   padding: 8px 12px;
-  background: #e9ecef;
-  border: 2px dashed #ccc;
+  background: #e5e7eb;
+  border: 2px dashed #d1d5db;
   border-radius: 6px;
+  margin-left: 5px;
 }
 
 .ll-empty {
