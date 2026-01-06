@@ -261,11 +261,22 @@ class UniversalNormalizer {
 
         // Handle tree
         if (step.tree && !addedIds.has('tree')) {
+            // Extract current node from step title (e.g., "Visit 5" -> 5)
+            let currentNode = null;
+            const visitMatch = step.title?.match(/visit\s+['"]?(\w+)['"]?/i);
+            if (visitMatch) {
+                currentNode = isNaN(visitMatch[1]) ? visitMatch[1] : parseInt(visitMatch[1]);
+            }
+
             addEntity({
                 id: 'tree',
                 type: 'tree',
                 data: step.tree,
-                meta: { label: 'Tree' }
+                meta: {
+                    label: 'Tree',
+                    currentNode: currentNode,
+                    highlight: step.highlight
+                }
             });
         }
 
@@ -485,6 +496,19 @@ class UniversalNormalizer {
                             to: value
                         });
                     }
+                }
+            }
+
+            // Detect tree visit from step title (for tree entities)
+            if (entity.type === 'tree') {
+                const visitMatch = step.title?.match(/visit\s+['"]?(\w+)['"]?/i);
+                if (visitMatch) {
+                    const visitValue = isNaN(visitMatch[1]) ? visitMatch[1] : parseInt(visitMatch[1]);
+                    actions.push({
+                        type: 'visit',
+                        target: entity.id,
+                        value: visitValue
+                    });
                 }
             }
         }

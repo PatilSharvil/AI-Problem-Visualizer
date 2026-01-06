@@ -5,6 +5,7 @@ import DPTableEntity from './entities/DPTableEntity';
 import StackEntity from './entities/StackEntity';
 import QueueEntity from './entities/QueueEntity';
 import MatrixEntity from './entities/MatrixEntity';
+import TreeEntity from './entities/TreeEntity';
 import './EntityRenderer.css';
 
 /**
@@ -66,6 +67,8 @@ function EntityRenderer({ entity, actions }) {
                 return <QueueEntity {...props} />;
             case 'matrix':
                 return <MatrixEntity {...props} />;
+            case 'tree':
+                return <TreeEntity {...props} />;
             default:
                 return <ArrayEntity {...props} />;
         }

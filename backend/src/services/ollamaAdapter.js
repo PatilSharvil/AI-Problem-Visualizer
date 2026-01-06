@@ -68,6 +68,7 @@ CRITICAL RULES:
 3. The "array" field must reflect the CURRENT STATE after each step
 4. For operations that build a result, use "result" field to show it building up
 5. The FINAL step must show the ACTUAL result in the array/result field
+6. For TREE TRAVERSAL: Show the TREE itself with "Visit X" titles. Do NOT output stack - visualize the TREE nodes being visited!
 
 Return JSON with:
 - structures: [{id, type, label, data}]
@@ -110,6 +111,21 @@ STACK REVERSE EXAMPLE for "abc":
     {"title": "Pop 'b'", "description": "Pop b, add to result", "stack": ["a"], "result": ["c","b"]},
     {"title": "Pop 'a'", "description": "Pop a, add to result", "stack": [], "result": ["c","b","a"]},
     {"title": "Done", "description": "Reversed: cba", "stack": [], "result": ["c","b","a"]}
+  ]
+}
+
+TREE TRAVERSAL EXAMPLE for BST [4,2,6,1,3,5,7] inorder:
+{
+  "structures": [{"id": "tree", "type": "tree", "label": "BST", "data": [4,2,6,1,3,5,7]}],
+  "steps": [
+    {"title": "Visit 1", "description": "Left subtree first", "tree": [4,2,6,1,3,5,7], "result": [1]},
+    {"title": "Visit 2", "description": "Visit parent", "tree": [4,2,6,1,3,5,7], "result": [1,2]},
+    {"title": "Visit 3", "description": "Right of 2", "tree": [4,2,6,1,3,5,7], "result": [1,2,3]},
+    {"title": "Visit 4", "description": "Visit root", "tree": [4,2,6,1,3,5,7], "result": [1,2,3,4]},
+    {"title": "Visit 5", "description": "Left of 6", "tree": [4,2,6,1,3,5,7], "result": [1,2,3,4,5]},
+    {"title": "Visit 6", "description": "Visit 6", "tree": [4,2,6,1,3,5,7], "result": [1,2,3,4,5,6]},
+    {"title": "Visit 7", "description": "Right of 6", "tree": [4,2,6,1,3,5,7], "result": [1,2,3,4,5,6,7]},
+    {"title": "Done", "description": "Inorder complete!", "tree": [4,2,6,1,3,5,7], "result": [1,2,3,4,5,6,7]}
   ]
 }
 
