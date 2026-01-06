@@ -64,9 +64,10 @@ PROBLEM: ${problem}
 
 CRITICAL RULES:
 1. Use ACTUAL values from the problem, never example values
-2. Show EVERY SINGLE STEP - never skip any comparison or swap
-3. For sorting: show state BEFORE the swap, then AFTER the swap as separate steps
-4. Include highlight array to show which indices are being compared/swapped
+2. Show EVERY SINGLE STEP - never skip any operation
+3. The "array" field must reflect the CURRENT STATE after each step
+4. For operations that build a result, use "result" field to show it building up
+5. The FINAL step must show the ACTUAL result in the array/result field
 
 Return JSON with:
 - structures: [{id, type, label, data}]
@@ -75,39 +76,44 @@ Return JSON with:
 STEP FIELDS:
 - title: "Compare", "Swap", "Push", "Pop", etc.
 - description: what happens
-- array: current array state AFTER this step
-- highlight: [indices being compared/swapped]
+- array: current INPUT array state (can change during algorithm)
+- result: current RESULT/OUTPUT array (builds up during algorithm)
+- highlight: [indices being operated on]
 - pointers: {i, j, left, right, prev, curr, next}
 - stack: current stack state
+- queue: current queue state
 - variables: {name: value}
 
 SORTING EXAMPLE for [3,1,2]:
 {
   "structures": [{"id": "arr", "type": "array", "label": "Array", "data": [3,1,2]}],
   "steps": [
-    {"title": "Compare", "description": "Compare 3 and 1 at indices 0,1", "array": [3,1,2], "highlight": [0,1], "pointers": {"i": 0, "j": 1}},
-    {"title": "Swap", "description": "3 > 1, swap them", "array": [1,3,2], "highlight": [0,1], "pointers": {"i": 0, "j": 1}},
-    {"title": "Compare", "description": "Compare 3 and 2 at indices 1,2", "array": [1,3,2], "highlight": [1,2], "pointers": {"i": 1, "j": 2}},
-    {"title": "Swap", "description": "3 > 2, swap them", "array": [1,2,3], "highlight": [1,2], "pointers": {"i": 1, "j": 2}},
-    {"title": "Compare", "description": "Compare 1 and 2 at indices 0,1", "array": [1,2,3], "highlight": [0,1], "pointers": {"i": 0, "j": 1}},
-    {"title": "No Swap", "description": "1 < 2, already in order", "array": [1,2,3], "highlight": [0,1], "pointers": {"i": 0, "j": 1}},
-    {"title": "Done", "description": "Array is sorted!", "array": [1,2,3], "highlight": [], "pointers": {}}
+    {"title": "Compare", "description": "Compare 3 and 1", "array": [3,1,2], "highlight": [0,1]},
+    {"title": "Swap", "description": "3 > 1, swap", "array": [1,3,2], "highlight": [0,1]},
+    {"title": "Compare", "description": "Compare 3 and 2", "array": [1,3,2], "highlight": [1,2]},
+    {"title": "Swap", "description": "3 > 2, swap", "array": [1,2,3], "highlight": [1,2]},
+    {"title": "Done", "description": "Sorted!", "array": [1,2,3], "highlight": []}
   ]
 }
 
-STACK EXAMPLE for reverse "ab":
+STACK REVERSE EXAMPLE for "abc":
 {
-  "structures": [{"id": "stack", "type": "stack", "label": "Stack", "data": []}],
+  "structures": [
+    {"id": "stack", "type": "stack", "label": "Stack", "data": []},
+    {"id": "result", "type": "array", "label": "Result", "data": []}
+  ],
   "steps": [
-    {"title": "Push 'a'", "description": "Push first character", "stack": ["a"], "array": ["a","b"], "highlight": [0]},
-    {"title": "Push 'b'", "description": "Push second character", "stack": ["a","b"], "array": ["a","b"], "highlight": [1]},
-    {"title": "Pop 'b'", "description": "Pop from stack", "stack": ["a"], "array": ["b"], "highlight": []},
-    {"title": "Pop 'a'", "description": "Pop from stack", "stack": [], "array": ["b","a"], "highlight": []},
-    {"title": "Done", "description": "Reversed: ba", "stack": [], "array": ["b","a"], "highlight": []}
+    {"title": "Push 'a'", "description": "Push a to stack", "stack": ["a"], "result": []},
+    {"title": "Push 'b'", "description": "Push b to stack", "stack": ["a","b"], "result": []},
+    {"title": "Push 'c'", "description": "Push c to stack", "stack": ["a","b","c"], "result": []},
+    {"title": "Pop 'c'", "description": "Pop c, add to result", "stack": ["a","b"], "result": ["c"]},
+    {"title": "Pop 'b'", "description": "Pop b, add to result", "stack": ["a"], "result": ["c","b"]},
+    {"title": "Pop 'a'", "description": "Pop a, add to result", "stack": [], "result": ["c","b","a"]},
+    {"title": "Done", "description": "Reversed: cba", "stack": [], "result": ["c","b","a"]}
   ]
 }
 
-Return ONLY valid JSON. Show EVERY step, never skip!`;
+Return ONLY valid JSON. Show EVERY step!`;
   }
 }
 

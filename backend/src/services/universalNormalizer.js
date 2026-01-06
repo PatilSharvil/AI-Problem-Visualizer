@@ -114,9 +114,20 @@ class UniversalNormalizer {
         const frames = [];
         let prevEntities = null;
 
+        // Pre-scan: find all entities that EVER have data (to show empty states later)
+        const entitiesWithData = new Set();
+        for (const step of steps) {
+            if (step.stack && Array.isArray(step.stack) && step.stack.length > 0) entitiesWithData.add('stack');
+            if (step.stack2 && Array.isArray(step.stack2) && step.stack2.length > 0) entitiesWithData.add('stack2');
+            if (step.queue && Array.isArray(step.queue) && step.queue.length > 0) entitiesWithData.add('queue');
+            if (step.queue2 && Array.isArray(step.queue2) && step.queue2.length > 0) entitiesWithData.add('queue2');
+            if (step.array && Array.isArray(step.array) && step.array.length > 0) entitiesWithData.add('arr');
+            if (step.list && Array.isArray(step.list) && step.list.length > 0) entitiesWithData.add('list');
+        }
+
         for (let i = 0; i < steps.length; i++) {
             const step = steps[i];
-            const entities = this.buildEntities(step, structures);
+            const entities = this.buildEntities(step, structures, entitiesWithData);
             const actions = this.detectActions(step, entities, prevEntities);
 
             frames.push({
@@ -136,17 +147,29 @@ class UniversalNormalizer {
 
     /**
      * Build entities array from step data - with deduplication
+     * @param {Object} step - Current step data
+     * @param {Array} structures - LLM-defined structures
+     * @param {Set} entitiesWithData - Set of entity IDs that have data in ANY step (for empty state rendering)
      */
-    buildEntities(step, structures) {
+    buildEntities(step, structures, entitiesWithData = new Set()) {
         const entities = [];
         const addedIds = new Set();
+        const addedDataSignatures = new Set(); // Track content to avoid duplicate data
 
-        // Helper to add entity only if not already added
+        // Helper to create data signature for dedup
+        const getDataSignature = (data) => JSON.stringify(data);
+
+        // Helper to add entity only if not already added (by id OR by content)
         const addEntity = (entity) => {
-            if (!addedIds.has(entity.id)) {
-                addedIds.add(entity.id);
-                entities.push(entity);
-            }
+            if (addedIds.has(entity.id)) return;
+
+            const sig = getDataSignature(entity.data);
+            // Skip if same content already exists (avoid duplicate arrays with same data)
+            if (addedDataSignatures.has(sig) && entity.type === 'array') return;
+
+            addedIds.add(entity.id);
+            addedDataSignatures.add(sig);
+            entities.push(entity);
         };
 
         // Process structures first
@@ -165,8 +188,8 @@ class UniversalNormalizer {
             }
         }
 
-        // Handle standalone data fields - only add if not already present
-        if (step.array && !addedIds.has('arr') && !addedIds.has('arr1')) {
+        // Handle standalone data fields - only add if not already present AND has content
+        if (step.array && Array.isArray(step.array) && step.array.length > 0 && !addedIds.has('arr') && !addedIds.has('arr1')) {
             addEntity({
                 id: 'arr',
                 type: 'array',
@@ -178,7 +201,7 @@ class UniversalNormalizer {
             });
         }
 
-        if (step.array2 && !addedIds.has('arr2')) {
+        if (step.array2 && Array.isArray(step.array2) && step.array2.length > 0 && !addedIds.has('arr2')) {
             addEntity({
                 id: 'arr2',
                 type: 'array',
@@ -190,7 +213,7 @@ class UniversalNormalizer {
             });
         }
 
-        if (step.result && !addedIds.has('result')) {
+        if (step.result && Array.isArray(step.result) && step.result.length > 0 && !addedIds.has('result')) {
             addEntity({
                 id: 'result',
                 type: 'array',
@@ -199,7 +222,7 @@ class UniversalNormalizer {
             });
         }
 
-        if (step.list1 && !addedIds.has('list1')) {
+        if (step.list1 && Array.isArray(step.list1) && step.list1.length > 0 && !addedIds.has('list1')) {
             addEntity({
                 id: 'list1',
                 type: 'linked_list',
@@ -211,7 +234,7 @@ class UniversalNormalizer {
             });
         }
 
-        if (step.list2 && !addedIds.has('list2')) {
+        if (step.list2 && Array.isArray(step.list2) && step.list2.length > 0 && !addedIds.has('list2')) {
             addEntity({
                 id: 'list2',
                 type: 'linked_list',
@@ -224,7 +247,7 @@ class UniversalNormalizer {
         }
 
         // Handle single list (when not using list1/list2)
-        if (step.list && !addedIds.has('list') && !addedIds.has('list1')) {
+        if (step.list && Array.isArray(step.list) && step.list.length > 0 && !addedIds.has('list') && !addedIds.has('list1')) {
             addEntity({
                 id: 'list',
                 type: 'linked_list',
@@ -248,19 +271,21 @@ class UniversalNormalizer {
 
         if ((step.dp || step.dpTable) && !addedIds.has('dp')) {
             const dpData = step.dp || step.dpTable;
-            addEntity({
-                id: 'dp',
-                type: 'dp_table',
-                data: dpData,
-                meta: {
-                    label: 'DP Table',
-                    currentCell: step.currentCell,
-                    highlight: step.dpHighlight
-                }
-            });
+            if (dpData && (Array.isArray(dpData) ? dpData.length > 0 : true)) {
+                addEntity({
+                    id: 'dp',
+                    type: 'dp_table',
+                    data: dpData,
+                    meta: {
+                        label: 'DP Table',
+                        currentCell: step.currentCell,
+                        highlight: step.dpHighlight
+                    }
+                });
+            }
         }
 
-        if (step.matrix && !addedIds.has('matrix')) {
+        if (step.matrix && Array.isArray(step.matrix) && step.matrix.length > 0 && !addedIds.has('matrix')) {
             addEntity({
                 id: 'matrix',
                 type: 'matrix',
@@ -273,40 +298,50 @@ class UniversalNormalizer {
             });
         }
 
-        if (step.stack && !addedIds.has('stack') && step.stack.length > 0) {
-            addEntity({
-                id: 'stack',
-                type: 'stack',
-                data: step.stack,
-                meta: { label: 'Stack' }
-            });
+        // Stack: show if has data OR if it was used earlier (show empty state)
+        if (step.stack && Array.isArray(step.stack) && !addedIds.has('stack')) {
+            if (step.stack.length > 0 || entitiesWithData.has('stack')) {
+                addEntity({
+                    id: 'stack',
+                    type: 'stack',
+                    data: step.stack,
+                    meta: { label: 'Stack' }
+                });
+            }
         }
 
-        if (step.stack2 && !addedIds.has('stack2') && step.stack2.length > 0) {
-            addEntity({
-                id: 'stack2',
-                type: 'stack',
-                data: step.stack2,
-                meta: { label: 'Stack 2' }
-            });
+        if (step.stack2 && Array.isArray(step.stack2) && !addedIds.has('stack2')) {
+            if (step.stack2.length > 0 || entitiesWithData.has('stack2')) {
+                addEntity({
+                    id: 'stack2',
+                    type: 'stack',
+                    data: step.stack2,
+                    meta: { label: 'Stack 2' }
+                });
+            }
         }
 
-        if (step.queue && !addedIds.has('queue') && step.queue.length > 0) {
-            addEntity({
-                id: 'queue',
-                type: 'queue',
-                data: step.queue,
-                meta: { label: 'Queue' }
-            });
+        // Queue: show if has data OR if it was used earlier (show empty state)
+        if (step.queue && Array.isArray(step.queue) && !addedIds.has('queue')) {
+            if (step.queue.length > 0 || entitiesWithData.has('queue')) {
+                addEntity({
+                    id: 'queue',
+                    type: 'queue',
+                    data: step.queue,
+                    meta: { label: 'Queue' }
+                });
+            }
         }
 
-        if (step.queue2 && !addedIds.has('queue2') && step.queue2.length > 0) {
-            addEntity({
-                id: 'queue2',
-                type: 'queue',
-                data: step.queue2,
-                meta: { label: 'Queue 2' }
-            });
+        if (step.queue2 && Array.isArray(step.queue2) && !addedIds.has('queue2')) {
+            if (step.queue2.length > 0 || entitiesWithData.has('queue2')) {
+                addEntity({
+                    id: 'queue2',
+                    type: 'queue',
+                    data: step.queue2,
+                    meta: { label: 'Queue 2' }
+                });
+            }
         }
 
         // Apply highlights to array entities
