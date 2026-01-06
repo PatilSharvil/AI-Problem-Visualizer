@@ -9,9 +9,8 @@ import './TreeEntity.css';
 function TreeEntity({ id, data, meta, actions }) {
     const { label, currentNode, highlight } = meta || {};
     const [animState, setAnimState] = useState({ visiting: null, inserting: null, removing: null, visitedNodes: [] });
-    const prevDataRef = useRef(null);
 
-    // Parse tree data - supports array format [root, left, right] or nested object format
+    // Parse tree data - supports array format or nested object format
     const treeData = useMemo(() => parseTreeData(data), [JSON.stringify(data)]);
 
     // Detect animations from actions and meta
@@ -19,51 +18,34 @@ function TreeEntity({ id, data, meta, actions }) {
         const visitAction = actions?.find(a => a.type === 'visit');
         const insertAction = actions?.find(a => a.type === 'insert');
         const removeAction = actions?.find(a => a.type === 'remove');
-        const highlightAction = actions?.find(a => a.type === 'highlight');
 
-        // Get visited node from multiple sources
         let visitingNode = null;
         let visitedNodes = [];
 
-        // 1. From meta.currentNode (direct from step data)
+        // From meta.currentNode
         if (currentNode !== undefined && currentNode !== null) {
             visitingNode = currentNode;
         }
 
-        // 2. From meta.highlight array
+        // From meta.highlight array
         if (highlight && Array.isArray(highlight) && highlight.length > 0) {
             visitedNodes = highlight;
             if (!visitingNode) visitingNode = highlight[highlight.length - 1];
         }
 
-        // 3. From visit action
+        // From visit action
         if (visitAction) {
             visitingNode = visitAction.value;
             if (visitAction.path) visitedNodes = visitAction.path;
         }
 
-        // 4. From highlight action
-        if (highlightAction && highlightAction.indices) {
-            visitedNodes = highlightAction.indices;
-        }
-
         setAnimState(prev => ({
             ...prev,
             visiting: visitingNode,
-            visitedNodes: visitedNodes
+            visitedNodes: visitedNodes,
+            inserting: insertAction?.value || null,
+            removing: removeAction?.value || null
         }));
-
-        if (insertAction) {
-            setAnimState(prev => ({ ...prev, inserting: insertAction.value }));
-            setTimeout(() => setAnimState(prev => ({ ...prev, inserting: null })), 500);
-        }
-
-        if (removeAction) {
-            setAnimState(prev => ({ ...prev, removing: removeAction.value }));
-            setTimeout(() => setAnimState(prev => ({ ...prev, removing: null })), 500);
-        }
-
-        prevDataRef.current = data;
     }, [JSON.stringify(actions), JSON.stringify(data), currentNode, JSON.stringify(highlight)]);
 
     if (!treeData || treeData.nodes.length === 0) {
@@ -89,22 +71,16 @@ function TreeEntity({ id, data, meta, actions }) {
             </div>
 
             {animState.visiting !== null && (
-                <div className="action-banner visit">👁️ Visiting node: {animState.visiting}</div>
-            )}
-            {animState.inserting !== null && (
-                <div className="action-banner insert">➕ Inserting: {animState.inserting}</div>
-            )}
-            {animState.removing !== null && (
-                <div className="action-banner remove">❌ Removing: {animState.removing}</div>
+                <div className="action-banner">● Visiting node: {animState.visiting}</div>
             )}
 
             <div className="tree-container">
                 <svg
                     viewBox={`0 0 ${width} ${height}`}
                     className="tree-svg"
-                    style={{ width: Math.min(width, 700), height: Math.min(height, 400) }}
+                    style={{ width: Math.min(width, 600), height: Math.min(height, 350) }}
                 >
-                    {/* Draw edges first (behind nodes) */}
+                    {/* Draw edges */}
                     {edges.map((edge, idx) => (
                         <line
                             key={`edge-${idx}`}
@@ -121,21 +97,17 @@ function TreeEntity({ id, data, meta, actions }) {
                         const isVisiting = animState.visiting === node.value || animState.visitedNodes.includes(node.value);
                         const isInserting = animState.inserting === node.value;
                         const isRemoving = animState.removing === node.value;
-                        const isRoot = idx === 0;
 
                         return (
                             <g
                                 key={`node-${idx}`}
-                                className={`tree-node-group 
-                  ${isVisiting ? 'visiting' : ''} 
-                  ${isInserting ? 'inserting' : ''} 
-                  ${isRemoving ? 'removing' : ''}`}
+                                className={`tree-node-group ${isVisiting ? 'visiting' : ''} ${isInserting ? 'inserting' : ''} ${isRemoving ? 'removing' : ''}`}
                             >
                                 <circle
                                     cx={node.x}
                                     cy={node.y}
-                                    r={22}
-                                    className={`tree-node ${isRoot ? 'root' : ''} ${isVisiting ? 'visiting' : ''} ${isInserting ? 'inserting' : ''} ${isRemoving ? 'removing' : ''}`}
+                                    r={20}
+                                    className={`tree-node ${node.isRoot ? 'root' : ''}`}
                                 />
                                 <text
                                     x={node.x}
@@ -155,160 +127,128 @@ function TreeEntity({ id, data, meta, actions }) {
 }
 
 /**
- * Parse various tree data formats into nodes and edges
- * Supports:
- * - Array format: [1, 2, 3, 4, 5, null, 6] (level-order)
- * - Object format: { value: 1, children: [{value: 2}, {value: 3}] }
+ * Parse tree data - builds proper BST structure for visualization
  */
 function parseTreeData(data) {
-    if (!data) return null;
+    if (!data || (Array.isArray(data) && data.length === 0)) return null;
 
-    let nodes = [];
-    let edges = [];
-
+    // Build BST from array of values
     if (Array.isArray(data)) {
-        // Level-order array format (like LeetCode)
-        nodes = buildNodesFromArray(data);
-        edges = buildEdgesFromArray(data, nodes);
-    } else if (typeof data === 'object' && data.value !== undefined) {
-        // Nested object format
-        const result = buildFromObject(data, 0, 0);
-        nodes = result.nodes;
-        edges = result.edges;
+        // Filter out nulls and build BST
+        const values = data.filter(v => v !== null && v !== undefined);
+        if (values.length === 0) return null;
+
+        // Build BST structure
+        const root = buildBST(values);
+        if (!root) return null;
+
+        // Assign positions using proper tree layout
+        const { nodes, edges, width, height } = layoutTree(root);
+        return { nodes, edges, width, height };
     }
 
-    if (nodes.length === 0) return null;
+    // Handle object format
+    if (typeof data === 'object' && data.value !== undefined) {
+        const { nodes, edges, width, height } = layoutTree(data);
+        return { nodes, edges, width, height };
+    }
 
-    // Calculate layout
-    const layout = calculateLayout(nodes.length);
-    nodes = assignPositions(nodes, layout);
+    return null;
+}
+
+/**
+ * Build BST from array of values
+ */
+function buildBST(values) {
+    if (values.length === 0) return null;
+
+    let root = null;
+
+    for (const val of values) {
+        root = insertIntoBST(root, val);
+    }
+
+    return root;
+}
+
+function insertIntoBST(node, value) {
+    if (node === null) {
+        return { value, left: null, right: null };
+    }
+
+    if (value < node.value) {
+        node.left = insertIntoBST(node.left, value);
+    } else {
+        node.right = insertIntoBST(node.right, value);
+    }
+
+    return node;
+}
+
+/**
+ * Layout tree with proper positioning
+ */
+function layoutTree(root) {
+    if (!root) return { nodes: [], edges: [], width: 100, height: 100 };
+
+    const nodes = [];
+    const edges = [];
+
+    // Calculate tree depth
+    const depth = getTreeDepth(root);
+
+    // Layout parameters
+    const nodeRadius = 20;
+    const levelHeight = 70;
+    const padding = 40;
+
+    // Width based on max nodes at deepest level
+    const maxWidth = Math.pow(2, depth - 1);
+    const baseWidth = Math.max(maxWidth * 50, 200);
+
+    // Position nodes using recursive DFS
+    function positionNode(node, level, leftBound, rightBound, parentX, parentY) {
+        if (!node) return;
+
+        const x = (leftBound + rightBound) / 2;
+        const y = padding + level * levelHeight;
+
+        nodes.push({
+            value: node.value,
+            x,
+            y,
+            isRoot: level === 0
+        });
+
+        // Add edge from parent
+        if (parentX !== null && parentY !== null) {
+            edges.push({
+                x1: parentX,
+                y1: parentY,
+                x2: x,
+                y2: y
+            });
+        }
+
+        // Position children
+        const mid = (leftBound + rightBound) / 2;
+        positionNode(node.left, level + 1, leftBound, mid, x, y);
+        positionNode(node.right, level + 1, mid, rightBound, x, y);
+    }
+
+    positionNode(root, 0, padding, baseWidth - padding, null, null);
 
     return {
         nodes,
-        edges: buildEdgesWithPositions(edges, nodes),
-        width: layout.width,
-        height: layout.height
+        edges,
+        width: baseWidth,
+        height: padding + depth * levelHeight + padding
     };
 }
 
-function buildNodesFromArray(arr) {
-    return arr
-        .map((val, idx) => ({ value: val, index: idx }))
-        .filter(n => n.value !== null && n.value !== undefined);
-}
-
-function buildEdgesFromArray(arr, nodes) {
-    const edges = [];
-    const nodeMap = new Map(nodes.map(n => [n.index, n]));
-
-    for (let i = 0; i < arr.length; i++) {
-        if (arr[i] === null || arr[i] === undefined) continue;
-
-        const leftIdx = 2 * i + 1;
-        const rightIdx = 2 * i + 2;
-
-        if (leftIdx < arr.length && arr[leftIdx] !== null && arr[leftIdx] !== undefined) {
-            edges.push({ from: i, to: leftIdx });
-        }
-        if (rightIdx < arr.length && arr[rightIdx] !== null && arr[rightIdx] !== undefined) {
-            edges.push({ from: i, to: rightIdx });
-        }
-    }
-
-    return edges;
-}
-
-function buildFromObject(node, depth, index) {
-    if (!node) return { nodes: [], edges: [] };
-
-    const nodes = [{ value: node.value, depth, index }];
-    const edges = [];
-
-    if (node.children && Array.isArray(node.children)) {
-        node.children.forEach((child, i) => {
-            if (child) {
-                const childResult = buildFromObject(child, depth + 1, nodes.length);
-                edges.push({ from: 0, to: nodes.length });
-                nodes.push(...childResult.nodes);
-                edges.push(...childResult.edges);
-            }
-        });
-    }
-
-    if (node.left) {
-        const leftResult = buildFromObject(node.left, depth + 1, nodes.length);
-        edges.push({ from: 0, to: nodes.length });
-        nodes.push(...leftResult.nodes);
-        edges.push(...leftResult.edges);
-    }
-
-    if (node.right) {
-        const rightResult = buildFromObject(node.right, depth + 1, nodes.length);
-        edges.push({ from: 0, to: nodes.length });
-        nodes.push(...rightResult.nodes);
-        edges.push(...rightResult.edges);
-    }
-
-    return { nodes, edges };
-}
-
-function calculateLayout(nodeCount) {
-    // Calculate tree dimensions based on node count
-    const depth = Math.ceil(Math.log2(nodeCount + 1));
-    const maxWidth = Math.pow(2, depth - 1);
-
-    const nodeSpacingX = 60;
-    const nodeSpacingY = 70;
-    const padding = 50;
-
-    return {
-        depth,
-        maxWidth,
-        width: maxWidth * nodeSpacingX + padding * 2,
-        height: depth * nodeSpacingY + padding * 2,
-        nodeSpacingX,
-        nodeSpacingY,
-        padding
-    };
-}
-
-function assignPositions(nodes, layout) {
-    const { width, nodeSpacingY, padding } = layout;
-
-    return nodes.map((node, idx) => {
-        // Calculate level and position within level
-        const level = Math.floor(Math.log2(idx + 1));
-        const posInLevel = idx - (Math.pow(2, level) - 1);
-        const nodesInLevel = Math.pow(2, level);
-
-        // Calculate x position (centered)
-        const levelWidth = width - padding * 2;
-        const spacing = levelWidth / (nodesInLevel + 1);
-        const x = padding + spacing * (posInLevel + 1);
-
-        // Calculate y position
-        const y = padding + level * nodeSpacingY;
-
-        return { ...node, x, y, level };
-    });
-}
-
-function buildEdgesWithPositions(edges, nodes) {
-    const nodeMap = new Map(nodes.map((n, i) => [n.index !== undefined ? n.index : i, n]));
-
-    return edges.map(edge => {
-        const fromNode = nodeMap.get(edge.from) || nodes[edge.from];
-        const toNode = nodeMap.get(edge.to) || nodes[edge.to];
-
-        if (!fromNode || !toNode) return null;
-
-        return {
-            x1: fromNode.x,
-            y1: fromNode.y,
-            x2: toNode.x,
-            y2: toNode.y
-        };
-    }).filter(Boolean);
+function getTreeDepth(node) {
+    if (!node) return 0;
+    return 1 + Math.max(getTreeDepth(node.left), getTreeDepth(node.right));
 }
 
 export default TreeEntity;

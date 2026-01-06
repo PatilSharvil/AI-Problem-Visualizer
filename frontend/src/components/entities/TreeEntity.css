@@ -15,7 +15,9 @@
   border-bottom: 2px solid #eee;
 }
 
-.entity-icon { font-size: 20px; }
+.entity-icon {
+  font-size: 20px;
+}
 
 .entity-label {
   font-size: 13px;
@@ -35,29 +37,26 @@
 
 .action-banner {
   text-align: center;
-  padding: 8px 15px;
-  margin-bottom: 15px;
-  border-radius: 6px;
-  font-weight: bold;
-  font-size: 13px;
-}
-
-.action-banner.visit {
-  background: #dbeafe;
-  border: 2px solid #3b82f6;
-  color: #1d4ed8;
+  padding: 6px 12px;
+  margin-bottom: 12px;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 12px;
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  color: #856404;
 }
 
 .action-banner.insert {
-  background: #d1fae5;
-  border: 2px solid #10b981;
-  color: #059669;
+  background: #d4edda;
+  border: 1px solid #28a745;
+  color: #155724;
 }
 
 .action-banner.remove {
-  background: #fee2e2;
-  border: 2px solid #ef4444;
-  color: #dc2626;
+  background: #f8d7da;
+  border: 1px solid #dc3545;
+  color: #721c24;
 }
 
 .entity-empty {
@@ -73,7 +72,7 @@
   display: flex;
   justify-content: center;
   padding: 20px;
-  background: #f8f9fa;
+  background: #fafafa;
   border-radius: 6px;
   overflow-x: auto;
 }
@@ -82,115 +81,63 @@
   max-width: 100%;
 }
 
-/* Edges */
+/* Edges - simple gray lines */
 .tree-edge {
-  stroke: #888;
+  stroke: #999;
   stroke-width: 2;
   fill: none;
 }
 
-/* Nodes */
+/* Nodes - simple circle style like VisuAlgo */
 .tree-node {
-  fill: #e5e7eb;
-  stroke: #333;
+  fill: #e9ecef;
+  stroke: #495057;
   stroke-width: 2;
-  transition: all 0.3s ease;
+  transition: fill 0.3s ease, stroke 0.3s ease;
 }
 
 .tree-node.root {
-  fill: #d1d5db;
-  stroke: #1f2937;
-  stroke-width: 3;
+  fill: #dee2e6;
+  stroke: #343a40;
 }
 
+/* Current/Visiting node - orange highlight like VisuAlgo */
 .tree-node.visiting {
-  fill: #3b82f6;
-  stroke: #1d4ed8;
-  animation: pulse 0.6s ease;
+  fill: #fd7e14;
+  stroke: #e65100;
 }
 
+/* Insert - green */
 .tree-node.inserting {
-  fill: #10b981;
-  stroke: #059669;
-  animation: scaleIn 0.5s ease;
+  fill: #28a745;
+  stroke: #1e7e34;
 }
 
+/* Remove - red */
 .tree-node.removing {
-  fill: #ef4444;
-  stroke: #dc2626;
-  animation: fadeOut 0.5s ease forwards;
+  fill: #dc3545;
+  stroke: #c82333;
 }
 
-/* Node text */
+/* Node text - simple styling */
 .tree-node-text {
   font-size: 14px;
   font-weight: bold;
-  fill: #333;
+  fill: #212529;
   text-anchor: middle;
   pointer-events: none;
   user-select: none;
+  transition: fill 0.3s ease;
 }
 
-.tree-node.visiting + .tree-node-text,
-.tree-node-group.visiting .tree-node-text {
-  fill: white;
-}
-
-.tree-node.inserting + .tree-node-text,
-.tree-node-group.inserting .tree-node-text {
-  fill: white;
-}
-
-.tree-node.removing + .tree-node-text,
+/* White text on colored nodes */
+.tree-node-group.visiting .tree-node-text,
+.tree-node-group.inserting .tree-node-text,
 .tree-node-group.removing .tree-node-text {
   fill: white;
 }
 
-/* Animations */
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.2); }
-  100% { transform: scale(1); }
-}
-
-@keyframes scaleIn {
-  0% { transform: scale(0); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-@keyframes fadeOut {
-  0% { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(0.5); }
-}
-
-/* Node group animations */
+/* Node group - NO animations, just color transitions */
 .tree-node-group {
-  transform-origin: center;
-}
-
-.tree-node-group.visiting {
-  animation: nodePulse 0.6s ease;
-}
-
-.tree-node-group.inserting {
-  animation: nodeScaleIn 0.5s ease;
-}
-
-.tree-node-group.removing {
-  animation: nodeFadeOut 0.5s ease forwards;
-}
-
-@keyframes nodePulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.15); }
-}
-
-@keyframes nodeScaleIn {
-  0% { transform: scale(0); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-@keyframes nodeFadeOut {
-  0% { opacity: 1; }
-  100% { opacity: 0; }
+  /* No transform, no scale, no animations */
 }

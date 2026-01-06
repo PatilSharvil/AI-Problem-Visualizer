@@ -122,12 +122,23 @@ TREE TRAVERSAL EXAMPLE for BST [4,2,6,1,3,5,7] inorder:
     {"title": "Visit 2", "description": "Visit parent", "tree": [4,2,6,1,3,5,7], "result": [1,2]},
     {"title": "Visit 3", "description": "Right of 2", "tree": [4,2,6,1,3,5,7], "result": [1,2,3]},
     {"title": "Visit 4", "description": "Visit root", "tree": [4,2,6,1,3,5,7], "result": [1,2,3,4]},
-    {"title": "Visit 5", "description": "Left of 6", "tree": [4,2,6,1,3,5,7], "result": [1,2,3,4,5]},
-    {"title": "Visit 6", "description": "Visit 6", "tree": [4,2,6,1,3,5,7], "result": [1,2,3,4,5,6]},
-    {"title": "Visit 7", "description": "Right of 6", "tree": [4,2,6,1,3,5,7], "result": [1,2,3,4,5,6,7]},
     {"title": "Done", "description": "Inorder complete!", "tree": [4,2,6,1,3,5,7], "result": [1,2,3,4,5,6,7]}
   ]
 }
+
+BST INSERT EXAMPLE for inserting 3, 5, 7, 1:
+{
+  "structures": [{"id": "tree", "type": "tree", "label": "BST", "data": []}],
+  "steps": [
+    {"title": "Insert 3", "description": "Insert 3 as root", "tree": [3]},
+    {"title": "Insert 5", "description": "5 > 3, insert right", "tree": [3, 5]},
+    {"title": "Insert 7", "description": "7 > 5, insert right", "tree": [3, 5, 7]},
+    {"title": "Insert 1", "description": "1 < 3, insert left", "tree": [3, 5, 7, 1]},
+    {"title": "Done", "description": "BST complete!", "tree": [3, 5, 7, 1]}
+  ]
+}
+
+IMPORTANT: For tree operations, ALWAYS include the "tree" field with current tree values in EVERY step!
 
 Return ONLY valid JSON. Show EVERY step!`;
   }
