@@ -65,8 +65,12 @@ class UniversalNormalizer {
             dp: step.dp,
             dpTable: step.dpTable,
             matrix: step.matrix,
-            stack: step.stack,
-            queue: step.queue,
+            // Handle stack variants (stack, stack1, stack2)
+            stack: step.stack || step.stack1,
+            stack2: step.stack2,
+            // Handle queue variants (queue, queue1, queue2)
+            queue: step.queue || step.queue1,
+            queue2: step.queue2,
             hashmap: step.hashmap,
             // Metadata
             pointers: step.pointers || {},
@@ -238,12 +242,30 @@ class UniversalNormalizer {
             });
         }
 
+        if (step.stack2 && !addedIds.has('stack2') && step.stack2.length > 0) {
+            addEntity({
+                id: 'stack2',
+                type: 'stack',
+                data: step.stack2,
+                meta: { label: 'Stack 2' }
+            });
+        }
+
         if (step.queue && !addedIds.has('queue') && step.queue.length > 0) {
             addEntity({
                 id: 'queue',
                 type: 'queue',
                 data: step.queue,
                 meta: { label: 'Queue' }
+            });
+        }
+
+        if (step.queue2 && !addedIds.has('queue2') && step.queue2.length > 0) {
+            addEntity({
+                id: 'queue2',
+                type: 'queue',
+                data: step.queue2,
+                meta: { label: 'Queue 2' }
             });
         }
 
