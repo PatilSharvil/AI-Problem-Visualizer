@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import EntityRenderer from './EntityRenderer';
-import VariablePanel from './VariablePanel';
 import './FrameVisualizer.css';
 
 /**
@@ -86,9 +85,15 @@ function FrameVisualizer({ frames, currentFrameIndex, onPrevious, onNext }) {
         ))}
       </div>
 
-      {/* Variables */}
+      {/* Variables - inline simple display */}
       {variables && Object.keys(variables).length > 0 && (
-        <VariablePanel variables={variables} />
+        <div className="variables-panel">
+          {Object.entries(variables).map(([key, value]) => (
+            <span key={key} className="variable-item">
+              <strong>{key}:</strong> {JSON.stringify(value)}
+            </span>
+          ))}
+        </div>
       )}
 
       {/* Controls */}
