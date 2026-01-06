@@ -56,30 +56,47 @@ class UniversalNormalizer {
             id: `step_${idx + 1}`,
             title: step.title || `Step ${idx + 1}`,
             description: step.description || '',
-            // Preserve all data fields
-            array: step.array,
-            array2: step.array2,
-            result: step.result,
-            list1: step.list1,
-            list2: step.list2,
-            dp: step.dp,
-            dpTable: step.dpTable,
-            matrix: step.matrix,
-            // Handle stack variants (stack, stack1, stack2)
-            stack: step.stack || step.stack1,
+
+            // Array variants: array, arr, nums, input, data, arr1
+            array: step.array || step.arr || step.nums || step.input || step.arr1,
+            array2: step.array2 || step.arr2,
+            result: step.result || step.output || step.merged,
+
+            // Linked list variants: list, linkedList, linked_list, list1, list2
+            list: step.list || step.linkedList || step.linked_list,
+            list1: step.list1 || step.linkedList1,
+            list2: step.list2 || step.linkedList2,
+
+            // DP variants: dp, dpTable, table, memo
+            dp: step.dp || step.dpTable || step.table || step.memo,
+            dpTable: step.dpTable || step.dp_table,
+
+            // Matrix variants: matrix, grid, board
+            matrix: step.matrix || step.grid || step.board,
+
+            // Stack variants: stack, stack1, stack2, stk
+            stack: step.stack || step.stack1 || step.stk,
             stack2: step.stack2,
-            // Handle queue variants (queue, queue1, queue2)
-            queue: step.queue || step.queue1,
+
+            // Queue variants: queue, queue1, queue2, q
+            queue: step.queue || step.queue1 || step.q,
             queue2: step.queue2,
-            hashmap: step.hashmap,
+
+            // Hashmap variants: hashmap, hash, map, dict, seen, visited
+            hashmap: step.hashmap || step.hash || step.map || step.dict || step.seen,
+
+            // Tree variants
+            tree: step.tree || step.root,
+
             // Metadata
-            pointers: step.pointers || {},
-            highlight: this.normalizeHighlight(step.highlight),
-            variables: step.variables || {},
+            pointers: step.pointers || step.indices || {},
+            highlight: this.normalizeHighlight(step.highlight || step.current || step.active),
+            variables: step.variables || step.vars || {},
+
             // Cell references
-            currentCell: step.currentCell,
-            dpHighlight: step.dpHighlight,
-            path: step.path
+            currentCell: step.currentCell || step.current_cell || step.cell,
+            dpHighlight: step.dpHighlight || step.dp_highlight || step.dependencies,
+            path: step.path || step.route
         }));
     }
 
@@ -203,6 +220,29 @@ class UniversalNormalizer {
                     label: 'List 2',
                     pointers: { p2: step.pointers?.p2 }
                 }
+            });
+        }
+
+        // Handle single list (when not using list1/list2)
+        if (step.list && !addedIds.has('list') && !addedIds.has('list1')) {
+            addEntity({
+                id: 'list',
+                type: 'linked_list',
+                data: step.list,
+                meta: {
+                    label: 'Linked List',
+                    pointers: this.getPointersForEntity(step.pointers, 'list', ['prev', 'curr', 'next', 'slow', 'fast'])
+                }
+            });
+        }
+
+        // Handle tree
+        if (step.tree && !addedIds.has('tree')) {
+            addEntity({
+                id: 'tree',
+                type: 'tree',
+                data: step.tree,
+                meta: { label: 'Tree' }
             });
         }
 
