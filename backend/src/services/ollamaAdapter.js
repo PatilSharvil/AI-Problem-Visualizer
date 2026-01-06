@@ -15,111 +15,99 @@ class OllamaAdapter extends LLMAdapterInterface {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: this.model,
-          prompt: this.buildUniversalPrompt(prompt),
+          prompt: this.buildPrompt(prompt),
           stream: false,
           options: { temperature: 0.1 }
         })
       });
 
       if (!response.ok) {
-        throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
+        throw new Error(`Ollama API error: ${response.status}`);
       }
 
       const data = await response.json();
       return this.parseJSON(data.response);
     } catch (error) {
-      console.error('Error calling Ollama API:', error.message);
+      console.error('Ollama error:', error.message);
       throw error;
     }
   }
 
   parseJSON(text) {
     try {
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) return JSON.parse(jsonMatch[0]);
+      const match = text.match(/\{[\s\S]*\}/);
+      if (match) return JSON.parse(match[0]);
     } catch (e) {
-      console.log('Strategy 1 failed, trying fixes...');
+      console.log('JSON parse failed, trying cleanup...');
     }
 
     try {
       let fixed = text.match(/\{[\s\S]*\}/)?.[0] || text;
       fixed = fixed.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
-      fixed = fixed.replace(/'/g, '"');
       return JSON.parse(fixed);
     } catch (e) {
-      console.log('Strategy 2 failed');
+      return this.getFallback();
     }
-
-    return this.getFallbackStructure();
   }
 
-  getFallbackStructure() {
+  getFallback() {
     return {
-      pattern: "unknown",
-      structures: [{ id: "arr", type: "array", label: "Data", data: [1, 2, 3, 4, 5] }],
-      steps: [{ title: "Processing", description: "Check logs", pointers: {}, highlight: [], variables: {} }]
+      structures: [{ id: "arr", type: "array", label: "Data", data: [] }],
+      steps: [{ title: "Error", description: "Could not parse LLM output", array: [], variables: {} }]
     };
   }
 
-  buildUniversalPrompt(problemStatement) {
-    return `You are an algorithm visualization engine. Analyze the problem and return step-by-step visualization.
+  buildPrompt(problem) {
+    return `You are an algorithm visualization engine.
 
-CRITICAL: Use the ACTUAL values from the problem. DO NOT use example values like [1,3,5] or [2,4,6]. Extract the real data from the problem statement.
+PROBLEM: ${problem}
 
-PROBLEM: ${problemStatement}
+CRITICAL RULES:
+1. Use ACTUAL values from the problem, never example values
+2. Show EVERY SINGLE STEP - never skip any comparison or swap
+3. For sorting: show state BEFORE the swap, then AFTER the swap as separate steps
+4. Include highlight array to show which indices are being compared/swapped
 
-Return JSON with this structure based on problem type:
+Return JSON with:
+- structures: [{id, type, label, data}]
+- steps: array of EVERY step
 
-FOR ARRAY PROBLEMS (sorting, searching, two pointers):
-- pattern: "sorting" or "two_pointers" or "sliding_window"
-- structures: [{id: "arr", type: "array", label: "Array", data: <ACTUAL_ARRAY_FROM_PROBLEM>}]
-- steps: Show each comparison/swap with array, highlight, pointers, variables
+STEP FIELDS:
+- title: "Compare", "Swap", "Push", "Pop", etc.
+- description: what happens
+- array: current array state AFTER this step
+- highlight: [indices being compared/swapped]
+- pointers: {i, j, left, right, prev, curr, next}
+- stack: current stack state
+- variables: {name: value}
 
-FOR MERGE PROBLEMS:
-- pattern: "merge"
-- structures: [{id: "arr1", type: "array", label: "Array 1", data: <FIRST_ARRAY>}, {id: "arr2", type: "array", label: "Array 2", data: <SECOND_ARRAY>}, {id: "result", type: "array", label: "Result", data: []}]
-- steps: Each step must have array, array2, result, pointers: {i, j}
-
-FOR LINKED LIST:
-- pattern: "linked_list" or "linked_list_reversal"
-- structures: [{id: "list", type: "linked_list", label: "Linked List", data: <ACTUAL_LIST>}]
-- steps: Show array field updating, use pointers: {prev, curr, next}
-
-FOR LINKED LIST MERGE:
-- pattern: "linked_list_merge"
-- structures: []
-- steps: Each step must have list1, list2, array (merged result), pointers: {p1, p2}
-- Example step: {"title": "Compare", "description": "1 < 2, take 1", "list1": [1,3,5], "list2": [2,4,6], "array": [1], "pointers": {"p1": 0, "p2": 0}}
-
-FOR DP PROBLEMS:
-- pattern: "dp"
-- structures: []
-- steps: Each step has dp array with currentCell index and dpHighlight for dependencies
-
-EXAMPLE for "Merge [1,3,5,7] and [2,4,6,8]":
+SORTING EXAMPLE for [3,1,2]:
 {
-  "pattern": "merge",
-  "structures": [
-    {"id": "arr1", "type": "array", "label": "Array 1", "data": [1,3,5,7]},
-    {"id": "arr2", "type": "array", "label": "Array 2", "data": [2,4,6,8]},
-    {"id": "result", "type": "array", "label": "Result", "data": []}
-  ],
+  "structures": [{"id": "arr", "type": "array", "label": "Array", "data": [3,1,2]}],
   "steps": [
-    {"title": "Compare 1 vs 2", "description": "1 < 2, take 1", "array": [1,3,5,7], "array2": [2,4,6,8], "result": [1], "pointers": {"i": 0, "j": 0}, "variables": {}},
-    {"title": "Compare 3 vs 2", "description": "3 > 2, take 2", "array": [1,3,5,7], "array2": [2,4,6,8], "result": [1,2], "pointers": {"i": 1, "j": 0}, "variables": {}},
-    {"title": "Compare 3 vs 4", "description": "3 < 4, take 3", "array": [1,3,5,7], "array2": [2,4,6,8], "result": [1,2,3], "pointers": {"i": 1, "j": 1}, "variables": {}},
-    {"title": "Compare 5 vs 4", "description": "5 > 4, take 4", "array": [1,3,5,7], "array2": [2,4,6,8], "result": [1,2,3,4], "pointers": {"i": 2, "j": 1}, "variables": {}},
-    {"title": "Complete", "description": "Merged!", "array": [1,3,5,7], "array2": [2,4,6,8], "result": [1,2,3,4,5,6,7,8], "pointers": {}, "variables": {"result": "[1,2,3,4,5,6,7,8]"}}
+    {"title": "Compare", "description": "Compare 3 and 1 at indices 0,1", "array": [3,1,2], "highlight": [0,1], "pointers": {"i": 0, "j": 1}},
+    {"title": "Swap", "description": "3 > 1, swap them", "array": [1,3,2], "highlight": [0,1], "pointers": {"i": 0, "j": 1}},
+    {"title": "Compare", "description": "Compare 3 and 2 at indices 1,2", "array": [1,3,2], "highlight": [1,2], "pointers": {"i": 1, "j": 2}},
+    {"title": "Swap", "description": "3 > 2, swap them", "array": [1,2,3], "highlight": [1,2], "pointers": {"i": 1, "j": 2}},
+    {"title": "Compare", "description": "Compare 1 and 2 at indices 0,1", "array": [1,2,3], "highlight": [0,1], "pointers": {"i": 0, "j": 1}},
+    {"title": "No Swap", "description": "1 < 2, already in order", "array": [1,2,3], "highlight": [0,1], "pointers": {"i": 0, "j": 1}},
+    {"title": "Done", "description": "Array is sorted!", "array": [1,2,3], "highlight": [], "pointers": {}}
   ]
 }
 
-RULES:
-1. Use ACTUAL values from the problem, not example values
-2. Each step MUST have the data field (array, dp, etc.) showing current state
-3. Generate 8-15 detailed steps
-4. Return ONLY valid JSON, no text before or after
+STACK EXAMPLE for reverse "ab":
+{
+  "structures": [{"id": "stack", "type": "stack", "label": "Stack", "data": []}],
+  "steps": [
+    {"title": "Push 'a'", "description": "Push first character", "stack": ["a"], "array": ["a","b"], "highlight": [0]},
+    {"title": "Push 'b'", "description": "Push second character", "stack": ["a","b"], "array": ["a","b"], "highlight": [1]},
+    {"title": "Pop 'b'", "description": "Pop from stack", "stack": ["a"], "array": ["b"], "highlight": []},
+    {"title": "Pop 'a'", "description": "Pop from stack", "stack": [], "array": ["b","a"], "highlight": []},
+    {"title": "Done", "description": "Reversed: ba", "stack": [], "array": ["b","a"], "highlight": []}
+  ]
+}
 
-Return ONLY the JSON.`;
+Return ONLY valid JSON. Show EVERY step, never skip!`;
   }
 }
 

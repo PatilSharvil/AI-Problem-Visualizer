@@ -1,0 +1,14 @@
+.entity-wrapper {
+    margin: 10px 0;
+}
+
+.entity-error {
+    padding: 20px;
+    margin: 10px 0;
+    background: #fee2e2;
+    border: 2px solid #ef4444;
+    border-radius: 8px;
+    color: #dc2626;
+    text-align: center;
+    font-weight: bold;
+}
