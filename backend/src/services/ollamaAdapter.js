@@ -74,8 +74,26 @@ class OllamaAdapter extends LLMAdapterInterface {
       (problemLower.includes('following'))
     );
 
+    // Detect tree property queries (height, depth, width, min, max, validate)
+    const hasTreeProperty = hasTree && (
+      problemLower.includes('height') ||
+      problemLower.includes('depth') ||
+      problemLower.includes('width') ||
+      problemLower.includes('diameter') ||
+      problemLower.includes('minimum') ||
+      problemLower.includes('maximum') ||
+      problemLower.includes('min ') ||
+      problemLower.includes('max ') ||
+      problemLower.includes('validate') ||
+      problemLower.includes('valid') ||
+      problemLower.includes('count') ||
+      problemLower.includes('balanced')
+    );
+
     if (hasMultiOps) {
-      examples = this.getTreeMultiOpExample();
+      examples = this.getTreeComprehensiveExample(); // Use comprehensive for multi-ops
+    } else if (hasTreeProperty) {
+      examples = this.getTreeComprehensiveExample(); // Use comprehensive for property queries
     } else if (problemLower.includes('preorder')) {
       examples = this.getPreorderExample();
     } else if (problemLower.includes('postorder')) {
@@ -83,9 +101,11 @@ class OllamaAdapter extends LLMAdapterInterface {
     } else if (problemLower.includes('inorder')) {
       examples = this.getInorderExample();
     } else if ((problemLower.includes('insert') || problemLower.includes('add') || problemLower.includes('create')) && hasTree) {
-      examples = this.getTreeInsertExample();
+      examples = this.getTreeComprehensiveExample(); // Use comprehensive for insert
     } else if ((problemLower.includes('search') || problemLower.includes('find') || problemLower.includes('present') || problemLower.includes('contains')) && hasTree) {
       examples = this.getTreeSearchExample();
+    } else if ((problemLower.includes('delete') || problemLower.includes('remove')) && hasTree) {
+      examples = this.getTreeComprehensiveExample(); // Use comprehensive for delete
     } else if (problemLower.includes('stack') || problemLower.includes('parenthes') || problemLower.includes('bracket')) {
       examples = this.getStackExample();
     } else if (problemLower.includes('queue') || problemLower.includes('bfs') || problemLower.includes('level order')) {
@@ -97,7 +117,7 @@ class OllamaAdapter extends LLMAdapterInterface {
     } else if (problemLower.includes('sort') || problemLower.includes('bubble') || problemLower.includes('selection')) {
       examples = this.getSortExample();
     } else if (hasTree) {
-      examples = this.getInorderExample(); // Default to traversal for generic tree problems
+      examples = this.getTreeComprehensiveExample(); // Use comprehensive for generic tree
     } else {
       examples = this.getGenericExample();
     }
@@ -255,6 +275,204 @@ Example: BST [5,3,7,1], insert 6, remove 1
     {"title": "Done", "description": "All operations complete", "tree": [5,3,7,null,null,6]}
   ]
 }`;
+  }
+
+  getTreeComprehensiveExample() {
+    return `
+=== COMPREHENSIVE BST VISUALIZATION GUIDE ===
+
+LEVEL-ORDER ARRAY FORMAT (CRITICAL):
+BST [4,2,6,1,3,5,7] represents:
+         4           ← index 0 (root)
+       /   \\
+      2     6        ← indices 1, 2
+     / \\   / \\
+    1   3 5   7      ← indices 3, 4, 5, 6
+
+ARRAY INDEXING:
+- Root at index 0
+- Left child of node at index i is at index (2*i + 1)
+- Right child of node at index i is at index (2*i + 2)
+- Use null for missing children
+
+BST RULES (MUST FOLLOW):
+1. LEFT < PARENT < RIGHT (always!)
+2. INSERT: value < node → go LEFT, value > node → go RIGHT
+3. SEARCH: value < node → go LEFT, value > node → go RIGHT
+4. REMOVE leaf: just remove (set to null)
+5. REMOVE 1-child: replace with that child
+6. REMOVE 2-children: replace with INORDER SUCCESSOR (smallest in right subtree)
+
+================================================================================
+TRAVERSAL EXAMPLES
+================================================================================
+
+--- INORDER (Left, Root, Right) → Sorted output ---
+BST [4,2,6,1,3,5,7] → Result: 1,2,3,4,5,6,7
+
+{
+  "structures": [{"id": "tree", "type": "tree", "label": "BST", "data": [4,2,6,1,3,5,7]}],
+  "steps": [
+    {"title": "Visit 1", "description": "Leftmost node first", "tree": [4,2,6,1,3,5,7], "result": [1]},
+    {"title": "Visit 2", "description": "Parent of 1", "tree": [4,2,6,1,3,5,7], "result": [1,2]},
+    {"title": "Visit 3", "description": "Right child of 2", "tree": [4,2,6,1,3,5,7], "result": [1,2,3]},
+    {"title": "Visit 4", "description": "Root", "tree": [4,2,6,1,3,5,7], "result": [1,2,3,4]},
+    {"title": "Visit 5", "description": "Left of 6", "tree": [4,2,6,1,3,5,7], "result": [1,2,3,4,5]},
+    {"title": "Visit 6", "description": "Right subtree root", "tree": [4,2,6,1,3,5,7], "result": [1,2,3,4,5,6]},
+    {"title": "Visit 7", "description": "Rightmost", "tree": [4,2,6,1,3,5,7], "result": [1,2,3,4,5,6,7]}
+  ]
+}
+
+--- PREORDER (Root, Left, Right) ---
+Result: 4,2,1,3,6,5,7
+
+{
+  "structures": [{"id": "tree", "type": "tree", "label": "BST", "data": [4,2,6,1,3,5,7]}],
+  "steps": [
+    {"title": "Visit 4", "description": "Root first", "tree": [4,2,6,1,3,5,7], "result": [4]},
+    {"title": "Visit 2", "description": "Left of root", "tree": [4,2,6,1,3,5,7], "result": [4,2]},
+    {"title": "Visit 1", "description": "Left of 2", "tree": [4,2,6,1,3,5,7], "result": [4,2,1]},
+    {"title": "Visit 3", "description": "Right of 2", "tree": [4,2,6,1,3,5,7], "result": [4,2,1,3]},
+    {"title": "Visit 6", "description": "Right of root", "tree": [4,2,6,1,3,5,7], "result": [4,2,1,3,6]},
+    {"title": "Visit 5", "description": "Left of 6", "tree": [4,2,6,1,3,5,7], "result": [4,2,1,3,6,5]},
+    {"title": "Visit 7", "description": "Right of 6", "tree": [4,2,6,1,3,5,7], "result": [4,2,1,3,6,5,7]}
+  ]
+}
+
+================================================================================
+INSERT EXAMPLES
+================================================================================
+
+--- Single Insert ---
+Insert 8 into BST [4,2,6,1,3,5,7]:
+Path: 8 > 4 (right), 8 > 6 (right), 8 > 7 (right of 7)
+
+{
+  "structures": [{"id": "tree", "type": "tree", "label": "BST", "data": [4,2,6,1,3,5,7]}],
+  "steps": [
+    {"title": "Initial BST", "description": "Given tree", "tree": [4,2,6,1,3,5,7]},
+    {"title": "Insert 8", "description": "8 > 4 (right), 8 > 6 (right), 8 > 7 (right of 7)", "tree": [4,2,6,1,3,5,7,null,null,null,null,null,null,null,8]}
+  ]
+}
+
+--- Insert 0 (leftmost) ---
+Insert 0 into BST [4,2,6,1,3,5,7]:
+Path: 0 < 4 (left), 0 < 2 (left), 0 < 1 (left of 1)
+
+{
+  "structures": [{"id": "tree", "type": "tree", "label": "BST", "data": [4,2,6,1,3,5,7]}],
+  "steps": [
+    {"title": "Initial BST", "description": "Given tree", "tree": [4,2,6,1,3,5,7]},
+    {"title": "Insert 0", "description": "0 < 4 (left), 0 < 2 (left), 0 < 1 (left of 1)", "tree": [4,2,6,1,3,5,7,0]}
+  ]
+}
+
+================================================================================
+REMOVE EXAMPLES
+================================================================================
+
+--- Remove Leaf Node (node 1) ---
+{
+  "structures": [{"id": "tree", "type": "tree", "label": "BST", "data": [4,2,6,1,3,5,7]}],
+  "steps": [
+    {"title": "Initial BST", "description": "Given tree", "tree": [4,2,6,1,3,5,7]},
+    {"title": "Remove 1", "description": "1 < 4 (left), 1 < 2 (left). 1 is leaf, remove", "tree": [4,2,6,null,3,5,7]}
+  ]
+}
+
+--- Remove Node with 2 Children (node 2) ---
+Inorder successor of 2 is 3 (smallest in right subtree of 2)
+{
+  "structures": [{"id": "tree", "type": "tree", "label": "BST", "data": [4,2,6,1,3,5,7]}],
+  "steps": [
+    {"title": "Initial BST", "description": "Given tree", "tree": [4,2,6,1,3,5,7]},
+    {"title": "Find 2", "description": "2 < 4, go left. Found node 2", "tree": [4,2,6,1,3,5,7]},
+    {"title": "Remove 2", "description": "2 has 2 children. Replace with inorder successor 3", "tree": [4,3,6,1,null,5,7]}
+  ]
+}
+
+--- Remove Root (node 4) ---
+Inorder successor of 4 is 5 (smallest in right subtree)
+{
+  "structures": [{"id": "tree", "type": "tree", "label": "BST", "data": [4,2,6,1,3,5,7]}],
+  "steps": [
+    {"title": "Initial BST", "description": "Given tree", "tree": [4,2,6,1,3,5,7]},
+    {"title": "Remove 4", "description": "4 is root with 2 children. Replace with inorder successor 5", "tree": [5,2,6,1,3,null,7]}
+  ]
+}
+
+================================================================================
+MULTI-OPERATION EXAMPLE
+================================================================================
+
+In BST [4,2,6,1,3,5,7], insert 0 then remove 4 then insert 8:
+
+{
+  "structures": [{"id": "tree", "type": "tree", "label": "BST", "data": [4,2,6,1,3,5,7]}],
+  "steps": [
+    {"title": "Initial BST", "description": "Starting tree", "tree": [4,2,6,1,3,5,7]},
+    {"title": "Insert 0", "description": "0 < 4 (left), 0 < 2 (left), 0 < 1 (left of 1)", "tree": [4,2,6,1,3,5,7,0]},
+    {"title": "Remove 4", "description": "Remove root. Replace with inorder successor 5", "tree": [5,2,6,1,3,null,7,0]},
+    {"title": "Insert 8", "description": "8 > 5 (right), 8 > 6 (right), 8 > 7 (right of 7)", "tree": [5,2,6,1,3,null,7,0,null,null,null,null,null,null,8]},
+    {"title": "Done", "description": "All operations complete", "tree": [5,2,6,1,3,null,7,0,null,null,null,null,null,null,8]}
+  ]
+}
+
+================================================================================
+SEARCH EXAMPLE
+================================================================================
+
+Search for 5 in BST [4,2,6,1,3,5,7]:
+{
+  "structures": [{"id": "tree", "type": "tree", "label": "BST", "data": [4,2,6,1,3,5,7]}],
+  "steps": [
+    {"title": "Visit 4", "description": "5 > 4, go RIGHT", "tree": [4,2,6,1,3,5,7], "path": [4]},
+    {"title": "Visit 6", "description": "5 < 6, go LEFT", "tree": [4,2,6,1,3,5,7], "path": [4,6]},
+    {"title": "Found 5", "description": "Target found!", "tree": [4,2,6,1,3,5,7], "path": [4,6,5], "result": [5]}
+  ]
+}
+
+================================================================================
+TREE PROPERTIES
+================================================================================
+
+--- Height of tree ---
+Height = max depth from root to any leaf
+BST [4,2,6,1,3,5,7] has height 2 (root=0, children=1, grandchildren=2)
+
+{
+  "structures": [{"id": "tree", "type": "tree", "label": "BST", "data": [4,2,6,1,3,5,7]}],
+  "steps": [
+    {"title": "Check root", "description": "Root 4 at depth 0", "tree": [4,2,6,1,3,5,7], "variables": {"depth": 0}},
+    {"title": "Check level 1", "description": "Nodes 2,6 at depth 1", "tree": [4,2,6,1,3,5,7], "variables": {"depth": 1}},
+    {"title": "Check level 2", "description": "Nodes 1,3,5,7 at depth 2", "tree": [4,2,6,1,3,5,7], "variables": {"depth": 2}},
+    {"title": "Height = 2", "description": "Max depth is 2", "tree": [4,2,6,1,3,5,7], "result": [2]}
+  ]
+}
+
+--- Find Minimum ---
+Minimum is leftmost node. In BST [4,2,6,1,3,5,7], min = 1
+
+{
+  "structures": [{"id": "tree", "type": "tree", "label": "BST", "data": [4,2,6,1,3,5,7]}],
+  "steps": [
+    {"title": "Start at root", "description": "At 4, go left", "tree": [4,2,6,1,3,5,7], "path": [4]},
+    {"title": "Go left", "description": "At 2, go left", "tree": [4,2,6,1,3,5,7], "path": [4,2]},
+    {"title": "Found min", "description": "1 has no left child, minimum found", "tree": [4,2,6,1,3,5,7], "path": [4,2,1], "result": [1]}
+  ]
+}
+
+================================================================================
+GENERATE YOUR RESPONSE NOW
+================================================================================
+
+IMPORTANT:
+1. Use EXACT values from the user's problem
+2. For INSERT/REMOVE, use format: "Title": "Insert X" or "Remove X"
+3. For traversals, format: "Title": "Visit X"
+4. Always include "tree" field with level-order array
+5. Tree operations MUST follow BST rules (left < parent < right)
+6. Return ONLY valid JSON, no extra text`;
   }
 
   getStackExample() {

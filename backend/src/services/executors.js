@@ -19,9 +19,10 @@ const ENABLE_EXECUTORS = process.env.ENABLE_EXECUTORS !== 'false';
 /**
  * Main dispatcher - runs all applicable executors on LLM output
  * @param {Object} llmOutput - Raw LLM JSON response
+ * @param {string} originalProblem - Original user query (optional)
  * @returns {Object} - Validated/corrected LLM output
  */
-function runExecutors(llmOutput) {
+function runExecutors(llmOutput, originalProblem = '') {
     if (!ENABLE_EXECUTORS) {
         return llmOutput;
     }
@@ -38,14 +39,27 @@ function runExecutors(llmOutput) {
         output.structures = output.structures.map(structureExecutor);
     }
 
+    // Parse initial tree from user query if present
+    let initialTree = parseTreeFromQuery(originalProblem);
+
     // Track previous tree for BST operations
     let previousTree = null;
 
-    // Get initial tree from structures
+    // Get initial tree from structures or parsed query
     const treeStructure = output.structures?.find(s => s.type === 'tree');
-    if (treeStructure && Array.isArray(treeStructure.data)) {
+    if (initialTree && initialTree.length > 0) {
+        previousTree = [...initialTree];
+        // Also update the structure data
+        if (treeStructure) {
+            treeStructure.data = [...initialTree];
+        }
+    } else if (treeStructure && Array.isArray(treeStructure.data)) {
         previousTree = [...treeStructure.data];
     }
+
+    // Parse operations from user query for reference
+    const queryOperations = parseOperationsFromQuery(originalProblem);
+    console.log('[Executor] Parsed operations from query:', queryOperations);
 
     // Validate each step
     if (Array.isArray(output.steps)) {
@@ -56,7 +70,7 @@ function runExecutors(llmOutput) {
             validatedStep = arrayExecutor(validatedStep);
             validatedStep = stackExecutor(validatedStep);
             validatedStep = queueExecutor(validatedStep);
-            validatedStep = treeExecutor(validatedStep, previousTree);
+            validatedStep = treeExecutor(validatedStep, previousTree, queryOperations);
             validatedStep = pointersExecutor(validatedStep);
 
             // Update previousTree for next iteration
@@ -69,6 +83,52 @@ function runExecutors(llmOutput) {
     }
 
     return output;
+}
+
+/**
+ * Parse tree array from user query like "BST [4,2,6,1,3,5,7]"
+ */
+function parseTreeFromQuery(query) {
+    if (!query) return null;
+
+    // Match patterns like [4,2,6,1,3,5,7] or [4, 2, 6, 1, 3, 5, 7]
+    const treeMatch = query.match(/\[([0-9,\s]+)\]/);
+    if (treeMatch) {
+        try {
+            const values = treeMatch[1].split(',').map(s => {
+                const trimmed = s.trim();
+                return trimmed === 'null' ? null : parseInt(trimmed);
+            }).filter(v => !isNaN(v) || v === null);
+            return values;
+        } catch (e) {
+            return null;
+        }
+    }
+    return null;
+}
+
+/**
+ * Parse operations from user query like "insert 0 then remove 4 then insert 8"
+ */
+function parseOperationsFromQuery(query) {
+    if (!query) return [];
+
+    const queryLower = query.toLowerCase();
+    const operations = [];
+
+    // Match "insert X" patterns
+    const insertMatches = queryLower.matchAll(/insert\s+(\d+)/gi);
+    for (const match of insertMatches) {
+        operations.push({ type: 'insert', value: parseInt(match[1]) });
+    }
+
+    // Match "remove X" or "delete X" patterns
+    const removeMatches = queryLower.matchAll(/(?:remove|delete)\s+(\d+)/gi);
+    for (const match of removeMatches) {
+        operations.push({ type: 'remove', value: parseInt(match[1]) });
+    }
+
+    return operations;
 }
 
 /**
@@ -174,7 +234,7 @@ function queueExecutor(step) {
  * - Recomputes correct BST structure using deterministic algorithms
  * - Removes duplicates and validates structure
  */
-function treeExecutor(step, previousTree) {
+function treeExecutor(step, previousTree, queryOperations = []) {
     if (!step) return step;
 
     const validated = { ...step };

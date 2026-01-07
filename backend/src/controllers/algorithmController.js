@@ -59,7 +59,7 @@ const classifyAlgorithm = async (req, res) => {
     console.log(`LLM output saved to: ${logFile}`);
 
     // Run executors (optional validation layer)
-    const validatedOutput = runExecutors(llmOutput);
+    const validatedOutput = runExecutors(llmOutput, problemStatement);
     console.log('\n=== EXECUTOR VALIDATION ===');
     console.log('Executors enabled:', isExecutorsEnabled());
     if (isExecutorsEnabled()) {
