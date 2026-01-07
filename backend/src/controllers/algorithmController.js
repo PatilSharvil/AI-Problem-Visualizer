@@ -1,6 +1,7 @@
 const { llmOutputSchema } = require('../schemas/llmOutputSchema');
 const { LLMService } = require('../services/llmService');
 const { UniversalNormalizer } = require('../services/universalNormalizer');
+const { runExecutors, isExecutorsEnabled } = require('../services/executors');
 const fs = require('fs');
 const path = require('path');
 
@@ -25,6 +26,7 @@ const classifyAlgorithm = async (req, res) => {
     console.log('=== NEW REQUEST ===');
     console.log('========================================');
     console.log('Problem:', problemStatement);
+    console.log('Executors enabled:', isExecutorsEnabled());
     console.log('----------------------------------------');
 
     // Get LLM output
@@ -56,18 +58,26 @@ const classifyAlgorithm = async (req, res) => {
     }, null, 2));
     console.log(`LLM output saved to: ${logFile}`);
 
-    console.log('\n=== LLM OUTPUT SUMMARY ===');
-    console.log('Structures:', llmOutput.structures?.length || 0);
-    console.log('Steps:', llmOutput.steps?.length || 0);
-    if (llmOutput.structures) {
-      console.log('Structure IDs:', llmOutput.structures.map(s => s.id));
+    // Run executors (optional validation layer)
+    const validatedOutput = runExecutors(llmOutput);
+    console.log('\n=== EXECUTOR VALIDATION ===');
+    console.log('Executors enabled:', isExecutorsEnabled());
+    if (isExecutorsEnabled()) {
+      console.log('Validation applied to', validatedOutput.steps?.length || 0, 'steps');
     }
-    if (llmOutput.steps?.[0]) {
-      console.log('First step keys:', Object.keys(llmOutput.steps[0]));
+
+    console.log('\n=== LLM OUTPUT SUMMARY ===');
+    console.log('Structures:', validatedOutput.structures?.length || 0);
+    console.log('Steps:', validatedOutput.steps?.length || 0);
+    if (validatedOutput.structures) {
+      console.log('Structure IDs:', validatedOutput.structures.map(s => s.id));
+    }
+    if (validatedOutput.steps?.[0]) {
+      console.log('First step keys:', Object.keys(validatedOutput.steps[0]));
     }
 
     // Normalize to universal format
-    const normalized = normalizer.normalize(llmOutput);
+    const normalized = normalizer.normalize(validatedOutput);
     console.log('\n=== NORMALIZED DATA ===');
     console.log('Normalized steps:', normalized.steps?.length);
 

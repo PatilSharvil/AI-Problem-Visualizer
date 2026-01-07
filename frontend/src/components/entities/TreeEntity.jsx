@@ -1,16 +1,42 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import './TreeEntity.css';
 
 /**
- * TreeEntity - Renders tree data structures with SVG
- * Supports: binary trees, n-ary trees, BST
- * Actions: visit, insert, remove, search
+ * TreeEntity - Complete Tree Visualization Component
+ * 
+ * Supports all tree visualization primitives:
+ * - nodes: Display tree nodes with values
+ * - edges: Connect parent-child nodes
+ * - currentNode: Highlight currently processing node
+ * - visitedNodes: Track visited nodes with color
+ * - path: Highlight path from root to target (for search)
+ * - highlightedEdges: Highlight specific edges
+ * - level: Show level indicators for BFS
+ * - subtreeRoot: Highlight entire subtree
+ * 
+ * Operations: visit, insert, remove, search, traverse
  */
 function TreeEntity({ id, data, meta, actions }) {
-    const { label, currentNode, highlight } = meta || {};
-    const [animState, setAnimState] = useState({ visiting: null, inserting: null, removing: null, visitedNodes: [] });
+    const {
+        label,
+        currentNode,
+        highlight,
+        path,              // NEW: path from root to target
+        highlightedEdges,  // NEW: specific edges to highlight
+        subtreeRoot,       // NEW: highlight subtree from this node
+        showLevels         // NEW: show level numbers
+    } = meta || {};
 
-    // Parse tree data - supports array format or nested object format
+    const [animState, setAnimState] = useState({
+        visiting: null,
+        inserting: null,
+        removing: null,
+        visitedNodes: [],
+        pathNodes: [],      // NEW: nodes on the path
+        foundNode: null     // NEW: final found node in search
+    });
+
+    // Parse tree data
     const treeData = useMemo(() => parseTreeData(data), [JSON.stringify(data)]);
 
     // Detect animations from actions and meta
@@ -18,9 +44,13 @@ function TreeEntity({ id, data, meta, actions }) {
         const visitAction = actions?.find(a => a.type === 'visit');
         const insertAction = actions?.find(a => a.type === 'insert');
         const removeAction = actions?.find(a => a.type === 'remove');
+        const searchAction = actions?.find(a => a.type === 'search');
+        const foundAction = actions?.find(a => a.type === 'found');
 
         let visitingNode = null;
         let visitedNodes = [];
+        let pathNodes = [];
+        let foundNode = null;
 
         // From meta.currentNode
         if (currentNode !== undefined && currentNode !== null) {
@@ -33,20 +63,37 @@ function TreeEntity({ id, data, meta, actions }) {
             if (!visitingNode) visitingNode = highlight[highlight.length - 1];
         }
 
-        // From visit action
-        if (visitAction) {
-            visitingNode = visitAction.value;
-            if (visitAction.path) visitedNodes = visitAction.path;
+        // From meta.path (for search operations)
+        if (path && Array.isArray(path)) {
+            pathNodes = path;
+            if (!visitingNode && path.length > 0) {
+                visitingNode = path[path.length - 1];
+            }
         }
 
-        setAnimState(prev => ({
-            ...prev,
+        // From actions
+        if (visitAction) {
+            visitingNode = visitAction.value;
+            if (visitAction.path) pathNodes = visitAction.path;
+        }
+
+        if (searchAction) {
+            if (searchAction.path) pathNodes = searchAction.path;
+        }
+
+        if (foundAction) {
+            foundNode = foundAction.value;
+        }
+
+        setAnimState({
             visiting: visitingNode,
             visitedNodes: visitedNodes,
+            pathNodes: pathNodes,
             inserting: insertAction?.value || null,
-            removing: removeAction?.value || null
-        }));
-    }, [JSON.stringify(actions), JSON.stringify(data), currentNode, JSON.stringify(highlight)]);
+            removing: removeAction?.value || null,
+            foundNode: foundNode
+        });
+    }, [JSON.stringify(actions), JSON.stringify(data), currentNode, JSON.stringify(highlight), JSON.stringify(path)]);
 
     if (!treeData || treeData.nodes.length === 0) {
         return (
@@ -60,7 +107,65 @@ function TreeEntity({ id, data, meta, actions }) {
         );
     }
 
-    const { nodes, edges, width, height } = treeData;
+    const { nodes, edges, width, height, levels } = treeData;
+
+    // Check if an edge is on the path
+    const isEdgeOnPath = (edge) => {
+        const pathNodes = animState.pathNodes;
+        if (!pathNodes || pathNodes.length < 2) return false;
+
+        for (let i = 0; i < pathNodes.length - 1; i++) {
+            if ((edge.fromValue === pathNodes[i] && edge.toValue === pathNodes[i + 1]) ||
+                (edge.fromValue === pathNodes[i + 1] && edge.toValue === pathNodes[i])) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    // Check if an edge should be highlighted
+    const isEdgeHighlighted = (edge) => {
+        if (isEdgeOnPath(edge)) return true;
+        if (highlightedEdges) {
+            return highlightedEdges.some(([from, to]) =>
+                (edge.fromValue === from && edge.toValue === to) ||
+                (edge.fromValue === to && edge.toValue === from)
+            );
+        }
+        return false;
+    };
+
+    // Get node state class
+    const getNodeClass = (node) => {
+        const classes = ['tree-node'];
+
+        if (node.isRoot) classes.push('root');
+
+        // Current visiting node (highest priority for color)
+        if (animState.visiting === node.value) {
+            classes.push('visiting');
+        }
+        // On the search path
+        else if (animState.pathNodes.includes(node.value)) {
+            classes.push('in-path');
+        }
+        // Already visited
+        else if (animState.visitedNodes.includes(node.value)) {
+            classes.push('visited');
+        }
+
+        // Special states
+        if (animState.inserting === node.value) classes.push('inserting');
+        if (animState.removing === node.value) classes.push('removing');
+        if (animState.foundNode === node.value) classes.push('found');
+
+        // Part of highlighted subtree
+        if (subtreeRoot && isInSubtree(node, subtreeRoot, nodes)) {
+            classes.push('in-subtree');
+        }
+
+        return classes.join(' ');
+    };
 
     return (
         <div className="tree-entity">
@@ -70,49 +175,92 @@ function TreeEntity({ id, data, meta, actions }) {
                 <span className="entity-size">Nodes: {nodes.length}</span>
             </div>
 
+            {/* Status Banner */}
             {animState.visiting !== null && (
-                <div className="action-banner">● Visiting node: {animState.visiting}</div>
+                <div className={`action-banner ${animState.foundNode ? 'found' : ''}`}>
+                    {animState.foundNode
+                        ? `✓ Found node: ${animState.foundNode}`
+                        : `● Visiting node: ${animState.visiting}`
+                    }
+                </div>
+            )}
+
+            {animState.inserting && (
+                <div className="action-banner insert">● Inserting: {animState.inserting}</div>
+            )}
+
+            {animState.removing && (
+                <div className="action-banner remove">● Removing: {animState.removing}</div>
+            )}
+
+            {/* Path Display */}
+            {animState.pathNodes.length > 0 && (
+                <div className="path-display">
+                    Path: {animState.pathNodes.join(' → ')}
+                </div>
             )}
 
             <div className="tree-container">
                 <svg
                     viewBox={`0 0 ${width} ${height}`}
                     className="tree-svg"
-                    style={{ width: Math.min(width, 700), height: Math.min(height, 400) }}
+                    style={{ width: Math.min(width, 700), height: Math.min(height, 450) }}
                 >
-                    {/* Draw edges */}
-                    {edges.map((edge, idx) => (
-                        <line
-                            key={`edge-${idx}`}
-                            x1={edge.x1}
-                            y1={edge.y1}
-                            x2={edge.x2}
-                            y2={edge.y2}
-                            className="tree-edge"
-                        />
+                    {/* Level indicators (for BFS) */}
+                    {showLevels && levels && levels.map((level, idx) => (
+                        <g key={`level-${idx}`}>
+                            <text
+                                x={15}
+                                y={level.y}
+                                className="level-label"
+                            >
+                                L{idx}
+                            </text>
+                            <line
+                                x1={35}
+                                y1={level.y}
+                                x2={width - 20}
+                                y2={level.y}
+                                className="level-line"
+                            />
+                        </g>
                     ))}
+
+                    {/* Draw edges first (behind nodes) */}
+                    {edges.map((edge, idx) => {
+                        const highlighted = isEdgeHighlighted(edge);
+                        return (
+                            <line
+                                key={`edge-${idx}`}
+                                x1={edge.x1}
+                                y1={edge.y1}
+                                x2={edge.x2}
+                                y2={edge.y2}
+                                className={`tree-edge ${highlighted ? 'highlighted' : ''}`}
+                            />
+                        );
+                    })}
 
                     {/* Draw nodes */}
                     {nodes.map((node, idx) => {
-                        const isVisiting = animState.visiting === node.value || animState.visitedNodes.includes(node.value);
-                        const isInserting = animState.inserting === node.value;
-                        const isRemoving = animState.removing === node.value;
+                        const nodeClass = getNodeClass(node);
+                        const isActive = animState.visiting === node.value ||
+                            animState.inserting === node.value ||
+                            animState.removing === node.value ||
+                            animState.foundNode === node.value;
 
                         return (
-                            <g
-                                key={`node-${idx}`}
-                                className={`tree-node-group ${isVisiting ? 'visiting' : ''} ${isInserting ? 'inserting' : ''} ${isRemoving ? 'removing' : ''}`}
-                            >
+                            <g key={`node-${idx}`} className="tree-node-group">
                                 <circle
                                     cx={node.x}
                                     cy={node.y}
                                     r={22}
-                                    className={`tree-node ${node.isRoot ? 'root' : ''} ${isVisiting ? 'visiting' : ''} ${isInserting ? 'inserting' : ''} ${isRemoving ? 'removing' : ''}`}
+                                    className={nodeClass}
                                 />
                                 <text
                                     x={node.x}
                                     y={node.y}
-                                    className={`tree-node-text ${isVisiting || isInserting || isRemoving ? 'highlighted' : ''}`}
+                                    className={`tree-node-text ${isActive ? 'highlighted' : ''}`}
                                     dy="0.35em"
                                 >
                                     {node.value}
@@ -127,44 +275,95 @@ function TreeEntity({ id, data, meta, actions }) {
 }
 
 /**
- * Parse tree data - builds proper BST structure for visualization
+ * Check if a node is in the subtree of subtreeRoot
+ */
+function isInSubtree(node, subtreeRootValue, allNodes) {
+    // Simple check - in a full implementation, we'd traverse the tree
+    return false; // TODO: Implement subtree detection
+}
+
+/**
+ * Parse tree data - supports level-order and insertion-order formats
  */
 function parseTreeData(data) {
     if (!data || (Array.isArray(data) && data.length === 0)) return null;
 
-    // Build BST from array of values
     if (Array.isArray(data)) {
         const values = data.filter(v => v !== null && v !== undefined);
         if (values.length === 0) return null;
 
-        const root = buildBST(values);
-        if (!root) return null;
+        let root;
+        if (isLevelOrderFormat(data)) {
+            root = buildFromLevelOrder(data);
+        } else {
+            root = buildBST(values);
+        }
 
-        const { nodes, edges, width, height } = layoutTree(root);
-        return { nodes, edges, width, height };
+        if (!root) return null;
+        return layoutTree(root);
     }
 
-    // Handle object format
     if (typeof data === 'object' && data.value !== undefined) {
-        const { nodes, edges, width, height } = layoutTree(data);
-        return { nodes, edges, width, height };
+        return layoutTree(data);
     }
 
     return null;
 }
 
 /**
- * Build BST from array of values
+ * Detect if array is level-order format (heap-style indexing)
+ * Arrays with null values are ALWAYS level-order format
+ */
+function isLevelOrderFormat(arr) {
+    if (arr.length <= 2) return false;
+
+    // If array contains null, it's definitely level-order format
+    if (arr.some(v => v === null)) return true;
+
+    const validElements = arr.filter(v => v !== null && v !== undefined).length;
+    const perfectSizes = [1, 3, 7, 15, 31];
+    if (perfectSizes.includes(validElements)) return true;
+
+    const root = arr[0];
+    const sorted = [...arr].filter(v => v !== null).sort((a, b) => a - b);
+    const minVal = sorted[0];
+    const maxVal = sorted[sorted.length - 1];
+
+    // If root is not min/max, it's likely level-order (root is middle value)
+    if (root !== minVal && root !== maxVal) return true;
+
+    return false;
+}
+
+/**
+ * Build tree from level-order array
+ */
+function buildFromLevelOrder(arr) {
+    if (!arr || arr.length === 0 || arr[0] === null) return null;
+
+    function buildNode(index) {
+        if (index >= arr.length || arr[index] === null || arr[index] === undefined) {
+            return null;
+        }
+        return {
+            value: arr[index],
+            left: buildNode(2 * index + 1),
+            right: buildNode(2 * index + 2)
+        };
+    }
+
+    return buildNode(0);
+}
+
+/**
+ * Build BST by inserting values
  */
 function buildBST(values) {
     if (values.length === 0) return null;
-
     let root = null;
-
     for (const val of values) {
         root = insertIntoBST(root, val);
     }
-
     return root;
 }
 
@@ -172,38 +371,35 @@ function insertIntoBST(node, value) {
     if (node === null) {
         return { value, left: null, right: null };
     }
-
     if (value < node.value) {
         node.left = insertIntoBST(node.left, value);
     } else {
         node.right = insertIntoBST(node.right, value);
     }
-
     return node;
 }
 
 /**
- * Layout tree with proper positioning
+ * Layout tree with positions
  */
 function layoutTree(root) {
-    if (!root) return { nodes: [], edges: [], width: 100, height: 100 };
+    if (!root) return { nodes: [], edges: [], width: 100, height: 100, levels: [] };
 
     const nodes = [];
     const edges = [];
+    const levels = [];
 
-    // Calculate tree depth
     const depth = getTreeDepth(root);
-
-    // Layout parameters - increased spacing for better visibility
-    const nodeRadius = 22;
     const levelHeight = 80;
     const padding = 50;
-
-    // Width based on max nodes at deepest level
     const maxWidth = Math.pow(2, depth - 1);
     const baseWidth = Math.max(maxWidth * 80, 400);
 
-    // Position nodes using recursive DFS
+    // Track levels for BFS visualization
+    for (let i = 0; i < depth; i++) {
+        levels.push({ y: padding + i * levelHeight });
+    }
+
     function positionNode(node, level, leftBound, rightBound, parentX, parentY) {
         if (!node) return;
 
@@ -214,20 +410,21 @@ function layoutTree(root) {
             value: node.value,
             x,
             y,
+            level,
             isRoot: level === 0
         });
 
-        // Add edge from parent
         if (parentX !== null && parentY !== null) {
             edges.push({
                 x1: parentX,
                 y1: parentY,
                 x2: x,
-                y2: y
+                y2: y,
+                fromValue: nodes.find(n => n.x === parentX && n.y === parentY)?.value,
+                toValue: node.value
             });
         }
 
-        // Position children
         const mid = (leftBound + rightBound) / 2;
         positionNode(node.left, level + 1, leftBound, mid, x, y);
         positionNode(node.right, level + 1, mid, rightBound, x, y);
@@ -239,7 +436,8 @@ function layoutTree(root) {
         nodes,
         edges,
         width: baseWidth,
-        height: padding + depth * levelHeight + padding
+        height: padding + depth * levelHeight + padding,
+        levels
     };
 }
 

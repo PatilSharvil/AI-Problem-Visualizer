@@ -42,6 +42,8 @@ class UniversalNormalizer {
             'dptable': 'dp_table',
             'matrix': 'matrix',
             'tree': 'tree',
+            'bst': 'tree',
+            'binary_tree': 'tree',
             'hashmap': 'hashmap',
             'hash': 'hashmap',
             'map': 'hashmap'
@@ -320,23 +322,77 @@ class UniversalNormalizer {
             });
         }
 
-        // Handle tree
-        if (step.tree && !addedIds.has('tree')) {
-            // Extract current node from step title (e.g., "Visit 5" -> 5)
+        // Handle tree - ALWAYS update tree data (don't skip if already added)
+        if (step.tree) {
+            // Extract current node from step title using multiple patterns
             let currentNode = null;
-            const visitMatch = step.title?.match(/visit\s+['"]?(\w+)['"]?/i);
+
+            // Pattern 1: "Visit 5" or "visiting 5"
+            const visitMatch = step.title?.match(/visit(?:ing)?\s+['"]?(\d+)['"]?/i);
             if (visitMatch) {
-                currentNode = isNaN(visitMatch[1]) ? visitMatch[1] : parseInt(visitMatch[1]);
+                currentNode = parseInt(visitMatch[1]);
             }
+
+            // Pattern 2: "Insert 5" or "inserting 5"
+            if (!currentNode) {
+                const insertMatch = step.title?.match(/insert(?:ing)?\s+['"]?(\d+)['"]?/i);
+                if (insertMatch) {
+                    currentNode = parseInt(insertMatch[1]);
+                }
+            }
+
+            // Pattern 3: "Remove 5" or "removing 5"
+            if (!currentNode) {
+                const removeMatch = step.title?.match(/remov(?:e|ing)\s+['"]?(\d+)['"]?/i);
+                if (removeMatch) {
+                    currentNode = parseInt(removeMatch[1]);
+                }
+            }
+
+            // Pattern 4: "Found 5" or "found!"
+            if (!currentNode) {
+                const foundMatch = step.title?.match(/found\s+['"]?(\d+)['"]?/i);
+                if (foundMatch) {
+                    currentNode = parseInt(foundMatch[1]);
+                }
+            }
+
+            // Pattern 5: Extract from result array (last added value)
+            if (!currentNode && step.result && Array.isArray(step.result) && step.result.length > 0) {
+                currentNode = step.result[step.result.length - 1];
+            }
+
+            // Pattern 6: Extract from description "visiting node X"
+            if (!currentNode && step.description) {
+                const descMatch = step.description.match(/(?:visiting|at|node)\s+['"]?(\d+)['"]?/i);
+                if (descMatch) {
+                    currentNode = parseInt(descMatch[1]);
+                }
+            }
+
+            // Check for level-order/BFS keywords
+            const showLevels = step.title?.toLowerCase().includes('level') ||
+                step.description?.toLowerCase().includes('level order');
+
+            // Remove existing tree entity if present, then add updated one
+            const existingTreeIndex = entities.findIndex(e => e.id === 'tree');
+            if (existingTreeIndex >= 0) {
+                entities.splice(existingTreeIndex, 1);
+            }
+            addedIds.delete('tree');
 
             addEntity({
                 id: 'tree',
                 type: 'tree',
-                data: step.tree,
+                data: step.tree, // Use THIS step's tree data
                 meta: {
-                    label: 'Tree',
+                    label: 'BST',
                     currentNode: currentNode,
-                    highlight: step.highlight
+                    highlight: step.highlight || step.result,
+                    path: step.path,
+                    highlightedEdges: step.highlightedEdges,
+                    subtreeRoot: step.subtreeRoot,
+                    showLevels: showLevels
                 }
             });
         }
