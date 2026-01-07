@@ -237,26 +237,14 @@ class UniversalNormalizer {
         for (const struct of structures) {
             const data = this.getEntityData(step, struct);
             if (data && data.length > 0) {
-                // For tree type, extract currentNode from title
-                let treeMeta = {
-                    label: struct.label,
-                    pointers: this.getPointersForEntity(step.pointers, struct.id)
-                };
-
-                if (struct.type === 'tree') {
-                    // Extract current node from step title (e.g., "Visit 5" -> 5)
-                    const visitMatch = step.title?.match(/visit\s+['"]?(\w+)['"]?/i);
-                    if (visitMatch) {
-                        treeMeta.currentNode = isNaN(visitMatch[1]) ? visitMatch[1] : parseInt(visitMatch[1]);
-                    }
-                    treeMeta.highlight = step.highlight;
-                }
-
                 addEntity({
                     id: struct.id,
                     type: struct.type,
                     data: data,
-                    meta: treeMeta
+                    meta: {
+                        label: struct.label,
+                        pointers: this.getPointersForEntity(step.pointers, struct.id)
+                    }
                 });
             }
         }
