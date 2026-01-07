@@ -10,6 +10,10 @@ class OllamaAdapter extends LLMAdapterInterface {
 
   async callLLM(prompt) {
     try {
+      // Add 60-second timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
+
       const response = await fetch(`${this.baseUrl}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -17,9 +21,12 @@ class OllamaAdapter extends LLMAdapterInterface {
           model: this.model,
           prompt: this.buildPrompt(prompt),
           stream: false,
-          options: { temperature: 0.1 }
-        })
+          options: { temperature: 0.1, num_predict: 2000 }
+        }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`Ollama API error: ${response.status}`);
@@ -28,6 +35,10 @@ class OllamaAdapter extends LLMAdapterInterface {
       const data = await response.json();
       return this.parseJSON(data.response);
     } catch (error) {
+      if (error.name === 'AbortError') {
+        console.error('LLM request timed out after 60 seconds');
+        throw new Error('LLM request timed out. Try a simpler problem or check if Ollama is running correctly.');
+      }
       console.error('Ollama error:', error.message);
       throw error;
     }
@@ -58,89 +69,149 @@ class OllamaAdapter extends LLMAdapterInterface {
   }
 
   buildPrompt(problem) {
+    // Detect problem type for focused examples
+    const problemLower = problem.toLowerCase();
+
+    let example = '';
+
+    if (problemLower.includes('stack') || problemLower.includes('push') || problemLower.includes('pop')) {
+      example = this.getStackExample();
+    } else if (problemLower.includes('queue') || problemLower.includes('enqueue') || problemLower.includes('dequeue') || problemLower.includes('bfs')) {
+      example = this.getQueueExample();
+    } else if (problemLower.includes('tree') || problemLower.includes('bst') || problemLower.includes('inorder') || problemLower.includes('preorder') || problemLower.includes('postorder') || problemLower.includes('traversal') || problemLower.includes('search')) {
+      example = this.getTreeExample();
+    } else if (problemLower.includes('sort') || problemLower.includes('bubble') || problemLower.includes('selection')) {
+      example = this.getSortExample();
+    } else if (problemLower.includes('window') || problemLower.includes('sliding')) {
+      example = this.getSlidingWindowExample();
+    } else {
+      example = this.getTwoPointerExample();
+    }
+
     return `You are an algorithm visualization engine.
 
 PROBLEM: ${problem}
 
-CRITICAL RULES:
-1. Use ACTUAL values from the problem, never example values
-2. Show EVERY SINGLE STEP - never skip any operation
-3. The "array" field must reflect the CURRENT STATE after each step
-4. For operations that build a result, use "result" field to show it building up
-5. The FINAL step must show the ACTUAL result in the array/result field
-6. For TREE TRAVERSAL: Show the TREE itself with "Visit X" titles. Do NOT output stack - visualize the TREE nodes being visited!
+RULES:
+1. Use ACTUAL values from the problem
+2. Show EVERY step
+3. Return valid JSON only
 
-Return JSON with:
-- structures: [{id, type, label, data}]
-- steps: array of EVERY step
+${example}
 
-STEP FIELDS:
-- title: "Compare", "Swap", "Push", "Pop", etc.
-- description: what happens
-- array: current INPUT array state (can change during algorithm)
-- result: current RESULT/OUTPUT array (builds up during algorithm)
-- highlight: [indices being operated on]
-- pointers: {i, j, left, right, prev, curr, next}
-- stack: current stack state
-- queue: current queue state
-- variables: {name: value}
+Generate steps for the EXACT problem above!`;
+  }
 
-SORTING EXAMPLE for [3,1,2]:
+  getStackExample() {
+    return `STACK OUTPUT FORMAT:
+{
+  "structures": [{"id": "stack", "type": "stack", "label": "Stack", "data": []}],
+  "steps": [
+    {"title": "Push 1", "description": "Push 1 to stack", "stack": [1]},
+    {"title": "Push 2", "description": "Push 2 to stack", "stack": [1, 2]},
+    {"title": "Pop", "description": "Pop from stack, got 2", "stack": [1]},
+    {"title": "Done", "description": "Stack operations complete", "stack": [1]}
+  ]
+}`;
+  }
+
+  getQueueExample() {
+    return `QUEUE OUTPUT FORMAT:
+{
+  "structures": [{"id": "queue", "type": "queue", "label": "Queue", "data": []}],
+  "steps": [
+    {"title": "Enqueue 1", "description": "Add 1 to queue", "queue": [1]},
+    {"title": "Enqueue 2", "description": "Add 2 to queue", "queue": [1, 2]},
+    {"title": "Dequeue", "description": "Remove from front, got 1", "queue": [2]},
+    {"title": "Done", "description": "Queue operations complete", "queue": [2]}
+  ]
+}`;
+  }
+
+  getTreeExample() {
+    return `TREE OUTPUT FORMAT - Always use "tree" field and "Visit X" in title to highlight nodes.
+
+Tree [4,2,6,1,3,5,7] represents:
+        4
+       / \\
+      2   6
+     / \\ / \\
+    1  3 5  7
+
+TRAVERSAL ORDERS:
+- INORDER (Left-Root-Right): 1,2,3,4,5,6,7
+- PREORDER (Root-Left-Right): 4,2,1,3,6,5,7  
+- POSTORDER (Left-Right-Root): 1,3,2,5,7,6,4
+- BFS/Level-Order: 4,2,6,1,3,5,7
+
+BST SEARCH EXAMPLE - Search for 5 in [4,2,6,1,3,5,7]:
+{
+  "structures": [{"id": "tree", "type": "tree", "label": "BST", "data": [4,2,6,1,3,5,7]}],
+  "steps": [
+    {"title": "Visit 4", "description": "Start at root. 5 > 4, go RIGHT", "tree": [4,2,6,1,3,5,7], "variables": {"target": 5, "current": 4}},
+    {"title": "Visit 6", "description": "At 6. 5 < 6, go LEFT", "tree": [4,2,6,1,3,5,7], "variables": {"target": 5, "current": 6}},
+    {"title": "Visit 5", "description": "Found 5!", "tree": [4,2,6,1,3,5,7], "variables": {"target": 5, "found": true}},
+    {"title": "Done", "description": "Element 5 found at depth 3", "tree": [4,2,6,1,3,5,7], "variables": {"found": true}}
+  ]
+}
+
+BST SEARCH follows: compare target with current node, go LEFT if smaller, RIGHT if larger!
+
+TRAVERSAL EXAMPLE for PREORDER of [4,2,6,1,3,5,7]:
+{
+  "structures": [{"id": "tree", "type": "tree", "label": "BST", "data": [4,2,6,1,3,5,7]}],
+  "steps": [
+    {"title": "Visit 4", "description": "Start at root", "tree": [4,2,6,1,3,5,7], "result": [4]},
+    {"title": "Visit 2", "description": "Go to left child", "tree": [4,2,6,1,3,5,7], "result": [4,2]},
+    {"title": "Visit 1", "description": "Go to left leaf", "tree": [4,2,6,1,3,5,7], "result": [4,2,1]},
+    {"title": "Visit 3", "description": "Backtrack, visit right of 2", "tree": [4,2,6,1,3,5,7], "result": [4,2,1,3]},
+    {"title": "Visit 6", "description": "Backtrack to root, go right", "tree": [4,2,6,1,3,5,7], "result": [4,2,1,3,6]},
+    {"title": "Visit 5", "description": "Left child of 6", "tree": [4,2,6,1,3,5,7], "result": [4,2,1,3,6,5]},
+    {"title": "Visit 7", "description": "Right child of 6", "tree": [4,2,6,1,3,5,7], "result": [4,2,1,3,6,5,7]},
+    {"title": "Done", "description": "Preorder: 4,2,1,3,6,5,7", "tree": [4,2,6,1,3,5,7], "result": [4,2,1,3,6,5,7]}
+  ]
+}
+
+Use the CORRECT pattern based on the problem (search vs traversal)!`;
+  }
+
+  getSortExample() {
+    return `SORTING OUTPUT FORMAT:
 {
   "structures": [{"id": "arr", "type": "array", "label": "Array", "data": [3,1,2]}],
   "steps": [
     {"title": "Compare", "description": "Compare 3 and 1", "array": [3,1,2], "highlight": [0,1]},
-    {"title": "Swap", "description": "3 > 1, swap", "array": [1,3,2], "highlight": [0,1]},
+    {"title": "Swap", "description": "3 > 1, swap them", "array": [1,3,2], "highlight": [0,1]},
     {"title": "Compare", "description": "Compare 3 and 2", "array": [1,3,2], "highlight": [1,2]},
-    {"title": "Swap", "description": "3 > 2, swap", "array": [1,2,3], "highlight": [1,2]},
-    {"title": "Done", "description": "Sorted!", "array": [1,2,3], "highlight": []}
+    {"title": "Swap", "description": "3 > 2, swap them", "array": [1,2,3], "highlight": [1,2]},
+    {"title": "Done", "description": "Array sorted!", "array": [1,2,3]}
   ]
-}
+}`;
+  }
 
-STACK REVERSE EXAMPLE for "abc":
+  getSlidingWindowExample() {
+    return `SLIDING WINDOW OUTPUT FORMAT:
 {
-  "structures": [
-    {"id": "stack", "type": "stack", "label": "Stack", "data": []},
-    {"id": "result", "type": "array", "label": "Result", "data": []}
-  ],
+  "structures": [{"id": "arr", "type": "array", "label": "Array", "data": [2,1,5,1,3]}],
   "steps": [
-    {"title": "Push 'a'", "description": "Push a to stack", "stack": ["a"], "result": []},
-    {"title": "Push 'b'", "description": "Push b to stack", "stack": ["a","b"], "result": []},
-    {"title": "Push 'c'", "description": "Push c to stack", "stack": ["a","b","c"], "result": []},
-    {"title": "Pop 'c'", "description": "Pop c, add to result", "stack": ["a","b"], "result": ["c"]},
-    {"title": "Pop 'b'", "description": "Pop b, add to result", "stack": ["a"], "result": ["c","b"]},
-    {"title": "Pop 'a'", "description": "Pop a, add to result", "stack": [], "result": ["c","b","a"]},
-    {"title": "Done", "description": "Reversed: cba", "stack": [], "result": ["c","b","a"]}
+    {"title": "Window [0-2]", "description": "Sum = 8", "array": [2,1,5,1,3], "highlight": [0,1,2], "variables": {"sum": 8}},
+    {"title": "Slide", "description": "Remove 2, add 1", "array": [2,1,5,1,3], "highlight": [1,2,3], "variables": {"sum": 7}},
+    {"title": "Done", "description": "Max sum found", "array": [2,1,5,1,3], "variables": {"maxSum": 9}}
   ]
-}
+}`;
+  }
 
-TREE TRAVERSAL EXAMPLE for BST [4,2,6,1,3,5,7] inorder:
+  getTwoPointerExample() {
+    return `TWO POINTER OUTPUT FORMAT:
 {
-  "structures": [{"id": "tree", "type": "tree", "label": "BST", "data": [4,2,6,1,3,5,7]}],
+  "structures": [{"id": "arr", "type": "array", "label": "Array", "data": [1,2,3,4,5]}],
   "steps": [
-    {"title": "Visit 1", "description": "Left subtree first", "tree": [4,2,6,1,3,5,7], "result": [1]},
-    {"title": "Visit 2", "description": "Visit parent", "tree": [4,2,6,1,3,5,7], "result": [1,2]},
-    {"title": "Visit 3", "description": "Right of 2", "tree": [4,2,6,1,3,5,7], "result": [1,2,3]},
-    {"title": "Visit 4", "description": "Visit root", "tree": [4,2,6,1,3,5,7], "result": [1,2,3,4]},
-    {"title": "Done", "description": "Inorder complete!", "tree": [4,2,6,1,3,5,7], "result": [1,2,3,4,5,6,7]}
+    {"title": "Initialize", "description": "left=0, right=4", "array": [1,2,3,4,5], "pointers": {"left": 0, "right": 4}, "highlight": [0,4]},
+    {"title": "Check", "description": "1+5=6", "array": [1,2,3,4,5], "pointers": {"left": 0, "right": 4}, "highlight": [0,4]},
+    {"title": "Move Left", "description": "Sum < target, move left", "array": [1,2,3,4,5], "pointers": {"left": 1, "right": 4}, "highlight": [1,4]},
+    {"title": "Found", "description": "Pair found!", "array": [1,2,3,4,5], "pointers": {"left": 1, "right": 3}, "highlight": [1,3]}
   ]
-}
-
-BST INSERT EXAMPLE for inserting 3, 5, 7, 1:
-{
-  "structures": [{"id": "tree", "type": "tree", "label": "BST", "data": []}],
-  "steps": [
-    {"title": "Insert 3", "description": "Insert 3 as root", "tree": [3]},
-    {"title": "Insert 5", "description": "5 > 3, insert right", "tree": [3, 5]},
-    {"title": "Insert 7", "description": "7 > 5, insert right", "tree": [3, 5, 7]},
-    {"title": "Insert 1", "description": "1 < 3, insert left", "tree": [3, 5, 7, 1]},
-    {"title": "Done", "description": "BST complete!", "tree": [3, 5, 7, 1]}
-  ]
-}
-
-IMPORTANT: For tree operations, ALWAYS include the "tree" field with current tree values in EVERY step!
-
-Return ONLY valid JSON. Show EVERY step!`;
+}`;
   }
 }
 

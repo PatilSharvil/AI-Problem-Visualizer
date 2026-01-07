@@ -133,11 +133,12 @@
 /* White text on colored nodes */
 .tree-node-group.visiting .tree-node-text,
 .tree-node-group.inserting .tree-node-text,
-.tree-node-group.removing .tree-node-text {
+.tree-node-group.removing .tree-node-text,
+.tree-node-text.highlighted {
   fill: white;
 }
 
-/* Node group - NO animations, just color transitions */
+/* Node group - smooth transitions */
 .tree-node-group {
-  /* No transform, no scale, no animations */
+  transition: opacity 0.3s ease;
 }

@@ -52,52 +52,113 @@ class UniversalNormalizer {
     normalizeSteps(steps, structures) {
         if (!Array.isArray(steps)) return [];
 
-        return steps.map((step, idx) => ({
-            id: `step_${idx + 1}`,
-            title: step.title || `Step ${idx + 1}`,
-            description: step.description || '',
+        return steps.map((step, idx) => {
+            // Extract raw data
+            const rawStep = {
+                id: `step_${idx + 1}`,
+                title: step.title || `Step ${idx + 1}`,
+                description: step.description || '',
 
-            // Array variants: array, arr, nums, input, data, arr1
-            array: step.array || step.arr || step.nums || step.input || step.arr1,
-            array2: step.array2 || step.arr2,
-            result: step.result || step.output || step.merged,
+                // Array variants
+                array: step.array || step.arr || step.nums || step.input || step.arr1,
+                array2: step.array2 || step.arr2,
+                result: step.result || step.output || step.merged,
 
-            // Linked list variants: list, linkedList, linked_list, list1, list2
-            list: step.list || step.linkedList || step.linked_list,
-            list1: step.list1 || step.linkedList1,
-            list2: step.list2 || step.linkedList2,
+                // Linked list variants
+                list: step.list || step.linkedList || step.linked_list,
+                list1: step.list1 || step.linkedList1,
+                list2: step.list2 || step.linkedList2,
 
-            // DP variants: dp, dpTable, table, memo
-            dp: step.dp || step.dpTable || step.table || step.memo,
-            dpTable: step.dpTable || step.dp_table,
+                // DP variants
+                dp: step.dp || step.dpTable || step.table || step.memo,
+                dpTable: step.dpTable || step.dp_table,
 
-            // Matrix variants: matrix, grid, board
-            matrix: step.matrix || step.grid || step.board,
+                // Matrix variants
+                matrix: step.matrix || step.grid || step.board,
 
-            // Stack variants: stack, stack1, stack2, stk
-            stack: step.stack || step.stack1 || step.stk,
-            stack2: step.stack2,
+                // Stack variants
+                stack: step.stack || step.stack1 || step.stk,
+                stack2: step.stack2,
 
-            // Queue variants: queue, queue1, queue2, q
-            queue: step.queue || step.queue1 || step.q,
-            queue2: step.queue2,
+                // Queue variants
+                queue: step.queue || step.queue1 || step.q,
+                queue2: step.queue2,
 
-            // Hashmap variants: hashmap, hash, map, dict, seen, visited
-            hashmap: step.hashmap || step.hash || step.map || step.dict || step.seen,
+                // Hashmap variants
+                hashmap: step.hashmap || step.hash || step.map || step.dict || step.seen,
 
-            // Tree variants
-            tree: step.tree || step.root,
+                // Tree variants
+                tree: step.tree || step.root,
 
-            // Metadata
-            pointers: step.pointers || step.indices || {},
-            highlight: this.normalizeHighlight(step.highlight || step.current || step.active),
-            variables: step.variables || step.vars || {},
+                // Metadata
+                pointers: step.pointers || step.indices || {},
+                highlight: this.normalizeHighlight(step.highlight || step.current || step.active),
+                variables: step.variables || step.vars || {},
 
-            // Cell references
-            currentCell: step.currentCell || step.current_cell || step.cell,
-            dpHighlight: step.dpHighlight || step.dp_highlight || step.dependencies,
-            path: step.path || step.route
-        }));
+                // Cell references
+                currentCell: step.currentCell || step.current_cell || step.cell,
+                dpHighlight: step.dpHighlight || step.dp_highlight || step.dependencies,
+                path: step.path || step.route
+            };
+
+            // Apply validation
+            return this.validateStep(rawStep);
+        });
+    }
+
+    /**
+     * Lightweight validation to ensure believable states
+     */
+    validateStep(step) {
+        const arrayLen = step.array?.length || 0;
+
+        // Validate pointers are within bounds
+        if (step.pointers && arrayLen > 0) {
+            step.pointers = this.sanitizePointers(step.pointers, arrayLen);
+        }
+
+        // Validate highlight indices within bounds
+        if (step.highlight && arrayLen > 0) {
+            step.highlight = step.highlight.filter(i => i >= 0 && i < arrayLen);
+        }
+
+        // Ensure stack is always an array
+        if (step.stack && !Array.isArray(step.stack)) {
+            step.stack = [];
+        }
+
+        // Ensure queue is always an array
+        if (step.queue && !Array.isArray(step.queue)) {
+            step.queue = [];
+        }
+
+        // Ensure tree is always an array
+        if (step.tree && !Array.isArray(step.tree)) {
+            step.tree = [];
+        }
+
+        // Ensure result is always an array
+        if (step.result && !Array.isArray(step.result)) {
+            step.result = [];
+        }
+
+        return step;
+    }
+
+    /**
+     * Sanitize pointer values to stay within array bounds
+     */
+    sanitizePointers(pointers, arrayLen) {
+        const sanitized = {};
+        for (const [key, value] of Object.entries(pointers)) {
+            if (typeof value === 'number') {
+                // Clamp to valid range [0, arrayLen-1]
+                sanitized[key] = Math.max(0, Math.min(value, arrayLen - 1));
+            } else {
+                sanitized[key] = value;
+            }
+        }
+        return sanitized;
     }
 
     normalizeHighlight(highlight) {
@@ -176,14 +237,26 @@ class UniversalNormalizer {
         for (const struct of structures) {
             const data = this.getEntityData(step, struct);
             if (data && data.length > 0) {
+                // For tree type, extract currentNode from title
+                let treeMeta = {
+                    label: struct.label,
+                    pointers: this.getPointersForEntity(step.pointers, struct.id)
+                };
+
+                if (struct.type === 'tree') {
+                    // Extract current node from step title (e.g., "Visit 5" -> 5)
+                    const visitMatch = step.title?.match(/visit\s+['"]?(\w+)['"]?/i);
+                    if (visitMatch) {
+                        treeMeta.currentNode = isNaN(visitMatch[1]) ? visitMatch[1] : parseInt(visitMatch[1]);
+                    }
+                    treeMeta.highlight = step.highlight;
+                }
+
                 addEntity({
                     id: struct.id,
                     type: struct.type,
                     data: data,
-                    meta: {
-                        label: struct.label,
-                        pointers: this.getPointersForEntity(step.pointers, struct.id)
-                    }
+                    meta: treeMeta
                 });
             }
         }
