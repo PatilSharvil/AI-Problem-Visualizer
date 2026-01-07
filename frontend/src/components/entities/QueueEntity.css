@@ -6,54 +6,302 @@
     border-radius: 8px;
 }
 
-.queue-content {
+.entity-header {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 15px;
-    background: #f8f9fa;
-    border-radius: 6px;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #eee;
+}
+
+.entity-icon {
+    font-size: 20px;
+}
+
+.entity-label {
+    font-size: 13px;
+    font-weight: bold;
+    color: #333;
+    text-transform: uppercase;
+}
+
+.entity-size {
+    margin-left: auto;
+    font-size: 12px;
+    color: #666;
+    background: #f3f4f6;
+    padding: 4px 10px;
+    border-radius: 4px;
+}
+
+/* Operation Banner */
+.queue-operation-banner {
+    text-align: center;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    border-radius: 4px;
+    font-weight: 500;
+    font-size: 13px;
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    color: #856404;
+}
+
+.queue-operation-banner.enqueue {
+    background: #d4edda;
+    border-color: #28a745;
+    color: #155724;
+}
+
+.queue-operation-banner.dequeue {
+    background: #f8d7da;
+    border-color: #dc3545;
+    color: #721c24;
+}
+
+.queue-operation-banner.process {
+    background: #e8f4fd;
+    border-color: #2196f3;
+    color: #1565c0;
+}
+
+/* Queue Visual Layout */
+.queue-visual {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    background: linear-gradient(90deg, #f0fdf4 0%, #f8f9fa 50%, #fef3c7 100%);
+    border-radius: 8px;
     overflow-x: auto;
 }
 
-.queue-front-label,
-.queue-rear-label {
-    font-size: 11px;
+/* Arrows */
+.queue-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 10px;
+    min-width: 70px;
+}
+
+.arrow-label {
+    font-size: 10px;
     font-weight: bold;
     color: #666;
-    padding: 4px 8px;
-    background: #e5e7eb;
-    border-radius: 4px;
-    white-space: nowrap;
+    text-transform: uppercase;
 }
 
+.dequeue-arrow .arrow-label {
+    color: #10b981;
+}
+
+.enqueue-arrow .arrow-label {
+    color: #f59e0b;
+}
+
+.arrow-icon {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.dequeue-arrow .arrow-icon {
+    color: #10b981;
+}
+
+.enqueue-arrow .arrow-icon {
+    color: #f59e0b;
+}
+
+/* Queue Container */
 .queue-container {
     display: flex;
-    gap: 4px;
-    min-height: 40px;
+    flex-direction: row;
+    gap: 10px;
+    min-height: 80px;
+    flex: 1;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 8px;
+    border: 2px dashed #ddd;
 }
 
+/* Queue Items */
 .queue-item {
-    padding: 12px 20px;
-    background: #8b5cf6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 15px 25px;
+    background: #6366f1;
     color: white;
     font-weight: bold;
     text-align: center;
-    border-radius: 4px;
-    transition: all 0.2s ease;
+    border-radius: 10px;
+    min-width: 60px;
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
 }
 
+.item-value {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+/* Position labels inside items */
+.position-label {
+    position: absolute;
+    font-size: 8px;
+    font-weight: bold;
+    padding: 2px 5px;
+    border-radius: 3px;
+    top: -8px;
+}
+
+.front-label {
+    background: #10b981;
+    color: white;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.rear-label {
+    background: #f59e0b;
+    color: white;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* Front Item - Green border */
 .queue-item.front {
     background: #10b981;
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
 }
 
+/* Rear Item - Orange */
 .queue-item.rear {
     background: #f59e0b;
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
 }
 
+/* When only 1 item - gradient */
+.queue-item.front.rear {
+    background: linear-gradient(135deg, #10b981 0%, #f59e0b 100%);
+}
+
+/* Highlighted Item */
+.queue-item.highlighted {
+    box-shadow: 0 0 0 4px #ff9800, 0 0 25px rgba(255, 152, 0, 0.6);
+    transform: scale(1.15);
+    z-index: 10;
+}
+
+/* Processing Animation */
+.queue-item.processing {
+    animation: processPulse 0.8s ease-in-out infinite;
+}
+
+/* ========== SLIDING ANIMATIONS ========== */
+
+/* New element slides in from right (REAR side) */
+.queue-item.slide-in-right {
+    animation: slideInFromRight 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Existing elements shift left when new element added */
+.queue-item.shift-left {
+    animation: shiftLeft 0.4s ease-out forwards;
+}
+
+/* Front element slides out left when dequeued */
+.queue-item.slide-out-left {
+    animation: slideOutToLeft 0.4s ease-out forwards;
+}
+
+/* Empty Queue */
 .queue-empty {
-    padding: 20px;
+    padding: 30px 60px;
     color: #999;
     font-style: italic;
+    background: #f8f8f8;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 14px;
+}
+
+/* ========== KEYFRAME ANIMATIONS ========== */
+
+/* Process pulse */
+@keyframes processPulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+    }
+
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 4px 25px rgba(16, 185, 129, 0.7);
+    }
+}
+
+/* Slide in from right - new element at REAR */
+@keyframes slideInFromRight {
+    0% {
+        transform: translateX(100px) scale(0.5);
+        opacity: 0;
+    }
+
+    60% {
+        transform: translateX(-10px) scale(1.05);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateX(0) scale(1);
+        opacity: 1;
+    }
+}
+
+/* Shift left - existing elements make room */
+@keyframes shiftLeft {
+    0% {
+        transform: translateX(50px);
+    }
+
+    100% {
+        transform: translateX(0);
+    }
+}
+
+/* Slide out to left - dequeued element leaves from FRONT */
+@keyframes slideOutToLeft {
+    0% {
+        transform: translateX(0) scale(1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateX(-80px) scale(0.5);
+        opacity: 0;
+    }
+}
+
+/* Highlight glow animation */
+@keyframes highlightGlow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 4px #ff9800;
+    }
+
+    50% {
+        box-shadow: 0 0 0 8px rgba(255, 152, 0, 0.5), 0 0 30px rgba(255, 152, 0, 0.4);
+    }
 }

@@ -108,7 +108,10 @@ class OllamaAdapter extends LLMAdapterInterface {
       examples = this.getTreeComprehensiveExample(); // Use comprehensive for delete
     } else if (problemLower.includes('stack') || problemLower.includes('parenthes') || problemLower.includes('bracket')) {
       examples = this.getStackExample();
-    } else if (problemLower.includes('queue') || problemLower.includes('bfs') || problemLower.includes('level order')) {
+    } else if (problemLower.includes('queue') || problemLower.includes('bfs') || problemLower.includes('level order') ||
+      problemLower.includes('enqueue') || problemLower.includes('dequeue') || problemLower.includes('fifo') ||
+      problemLower.includes('breadth first') || problemLower.includes('ticket') || problemLower.includes('schedule') ||
+      problemLower.includes('round robin') || problemLower.includes('process') && problemLower.includes('order')) {
       examples = this.getQueueExample();
     } else if (problemLower.includes('two pointer') || problemLower.includes('pair') || (problemLower.includes('sum') && problemLower.includes('sorted'))) {
       examples = this.getTwoPointerExample();
@@ -487,14 +490,145 @@ IMPORTANT:
   }
 
   getQueueExample() {
-    return `=== QUEUE/BFS FORMAT ===
+    return `
+=== COMPREHENSIVE QUEUE VISUALIZATION GUIDE ===
+
+QUEUE FORMAT (FIFO - First In, First Out):
+Queue: [A, B, C, D]
+        ↑           ↑
+      FRONT       REAR
+
+OPERATIONS:
+- Enqueue: Add to REAR (end of array)
+- Dequeue: Remove from FRONT (start of array)
+- Front/Peek: View front element without removing
+
+OUTPUT FORMAT:
+- Use "queue" field for queue data (array, first element = FRONT)
+- Use "result" for processed/dequeued elements
+- Use "highlight" for indices to highlight
+- Include meta.operation for "Enqueue X" or "Dequeue" display
+
+================================================================================
+CORE QUEUE OPERATIONS
+================================================================================
+
+--- Basic Enqueue/Dequeue ---
+Problem: Enqueue 1,2,3 then dequeue twice
+
 {
   "structures": [{"id": "queue", "type": "queue", "label": "Queue", "data": []}],
   "steps": [
-    {"title": "Enqueue X", "description": "Add X", "queue": [X], "result": []},
-    {"title": "Dequeue", "description": "Remove front", "queue": [], "result": [X]}
+    {"title": "Enqueue 1", "description": "Add 1 to rear", "queue": [1], "meta": {"operation": "Enqueue 1"}},
+    {"title": "Enqueue 2", "description": "Add 2 to rear", "queue": [1,2], "meta": {"operation": "Enqueue 2"}},
+    {"title": "Enqueue 3", "description": "Add 3 to rear", "queue": [1,2,3], "meta": {"operation": "Enqueue 3"}},
+    {"title": "Dequeue", "description": "Remove 1 from front", "queue": [2,3], "result": [1], "meta": {"operation": "Dequeue → 1"}},
+    {"title": "Dequeue", "description": "Remove 2 from front", "queue": [3], "result": [1,2], "meta": {"operation": "Dequeue → 2"}}
   ]
-}`;
+}
+
+--- Queue State Transitions ---
+{
+  "structures": [{"id": "queue", "type": "queue", "label": "Queue", "data": []}],
+  "steps": [
+    {"title": "Empty Queue", "description": "Queue starts empty", "queue": []},
+    {"title": "Enqueue A", "description": "A is both front and rear", "queue": ["A"]},
+    {"title": "Enqueue B", "description": "A=front, B=rear", "queue": ["A","B"]},
+    {"title": "Dequeue", "description": "Remove A, B is now front and rear", "queue": ["B"], "result": ["A"]},
+    {"title": "Dequeue", "description": "Queue becomes empty", "queue": [], "result": ["A","B"]}
+  ]
+}
+
+================================================================================
+BFS / LEVEL ORDER TRAVERSAL
+================================================================================
+
+--- Level Order with Queue ---
+Problem: Level order traversal of BST [4,2,6,1,3,5,7]
+
+{
+  "structures": [
+    {"id": "tree", "type": "tree", "label": "BST", "data": [4,2,6,1,3,5,7]},
+    {"id": "queue", "type": "queue", "label": "BFS Queue", "data": []}
+  ],
+  "steps": [
+    {"title": "Start BFS", "description": "Enqueue root 4", "tree": [4,2,6,1,3,5,7], "queue": [4], "result": [], "meta": {"operation": "Enqueue 4"}},
+    {"title": "Visit 4", "description": "Dequeue 4, enqueue children 2,6", "tree": [4,2,6,1,3,5,7], "queue": [2,6], "result": [4], "meta": {"operation": "Dequeue 4, Enqueue 2,6"}},
+    {"title": "Visit 2", "description": "Dequeue 2, enqueue children 1,3", "tree": [4,2,6,1,3,5,7], "queue": [6,1,3], "result": [4,2], "meta": {"operation": "Dequeue 2, Enqueue 1,3"}},
+    {"title": "Visit 6", "description": "Dequeue 6, enqueue children 5,7", "tree": [4,2,6,1,3,5,7], "queue": [1,3,5,7], "result": [4,2,6], "meta": {"operation": "Dequeue 6, Enqueue 5,7"}},
+    {"title": "Visit 1", "description": "Dequeue 1, no children", "tree": [4,2,6,1,3,5,7], "queue": [3,5,7], "result": [4,2,6,1], "meta": {"operation": "Dequeue 1"}},
+    {"title": "Visit 3", "description": "Dequeue 3, no children", "tree": [4,2,6,1,3,5,7], "queue": [5,7], "result": [4,2,6,1,3], "meta": {"operation": "Dequeue 3"}},
+    {"title": "Visit 5", "description": "Dequeue 5, no children", "tree": [4,2,6,1,3,5,7], "queue": [7], "result": [4,2,6,1,3,5], "meta": {"operation": "Dequeue 5"}},
+    {"title": "Visit 7", "description": "Dequeue 7, no children. BFS complete!", "tree": [4,2,6,1,3,5,7], "queue": [], "result": [4,2,6,1,3,5,7], "meta": {"operation": "Dequeue 7"}}
+  ]
+}
+
+================================================================================
+SIMULATION PROBLEMS
+================================================================================
+
+--- Ticket Counter / Task Processing ---
+Problem: Process 5 customers in queue
+
+{
+  "structures": [{"id": "queue", "type": "queue", "label": "Customer Queue", "data": ["C1","C2","C3","C4","C5"]}],
+  "steps": [
+    {"title": "Initial Queue", "description": "5 customers waiting", "queue": ["C1","C2","C3","C4","C5"]},
+    {"title": "Serve C1", "description": "Process customer 1", "queue": ["C2","C3","C4","C5"], "result": ["C1"], "meta": {"operation": "Process C1", "processing": true}},
+    {"title": "Serve C2", "description": "Process customer 2", "queue": ["C3","C4","C5"], "result": ["C1","C2"], "meta": {"operation": "Process C2", "processing": true}},
+    {"title": "Serve C3", "description": "Process customer 3", "queue": ["C4","C5"], "result": ["C1","C2","C3"], "meta": {"operation": "Process C3", "processing": true}},
+    {"title": "Serve C4", "description": "Process customer 4", "queue": ["C5"], "result": ["C1","C2","C3","C4"], "meta": {"operation": "Process C4", "processing": true}},
+    {"title": "Serve C5", "description": "All customers served", "queue": [], "result": ["C1","C2","C3","C4","C5"], "meta": {"operation": "Process C5", "processing": true}}
+  ]
+}
+
+--- Round Robin Scheduling ---
+Problem: Round robin with time quantum for tasks A,B,C
+
+{
+  "structures": [{"id": "queue", "type": "queue", "label": "Ready Queue", "data": ["A","B","C"]}],
+  "steps": [
+    {"title": "Initial", "description": "Tasks in ready queue", "queue": ["A","B","C"]},
+    {"title": "Execute A", "description": "Run A for quantum, move to rear", "queue": ["B","C","A"], "meta": {"operation": "Execute A, re-enqueue"}},
+    {"title": "Execute B", "description": "Run B for quantum, move to rear", "queue": ["C","A","B"], "meta": {"operation": "Execute B, re-enqueue"}},
+    {"title": "Execute C", "description": "C completes", "queue": ["A","B"], "result": ["C"], "meta": {"operation": "C complete"}},
+    {"title": "Execute A", "description": "A completes", "queue": ["B"], "result": ["C","A"], "meta": {"operation": "A complete"}},
+    {"title": "Execute B", "description": "B completes. All done!", "queue": [], "result": ["C","A","B"], "meta": {"operation": "B complete"}}
+  ]
+}
+
+================================================================================
+SLIDING WINDOW (Queue Pattern)
+================================================================================
+
+--- First Negative in Each Window ---
+Problem: First negative in each window of size 3 for [1,-2,3,-4,5,-6]
+
+{
+  "structures": [
+    {"id": "arr", "type": "array", "label": "Array", "data": [1,-2,3,-4,5,-6]},
+    {"id": "queue", "type": "queue", "label": "Negatives Queue", "data": []}
+  ],
+  "steps": [
+    {"title": "Window [0-2]", "description": "Elements: 1,-2,3. First negative: -2", "array": [1,-2,3,-4,5,-6], "queue": [-2], "result": [-2], "highlight": [0,1,2]},
+    {"title": "Window [1-3]", "description": "Elements: -2,3,-4. First negative: -2", "array": [1,-2,3,-4,5,-6], "queue": [-2,-4], "result": [-2,-2], "highlight": [1,2,3]},
+    {"title": "Window [2-4]", "description": "Elements: 3,-4,5. -2 exits, first negative: -4", "array": [1,-2,3,-4,5,-6], "queue": [-4], "result": [-2,-2,-4], "highlight": [2,3,4]},
+    {"title": "Window [3-5]", "description": "Elements: -4,5,-6. First negative: -4", "array": [1,-2,3,-4,5,-6], "queue": [-4,-6], "result": [-2,-2,-4,-4], "highlight": [3,4,5]}
+  ]
+}
+
+================================================================================
+GENERATE YOUR RESPONSE NOW
+================================================================================
+
+IMPORTANT:
+1. Use EXACT values from the user's problem
+2. For Enqueue: "title": "Enqueue X", add element to end of queue array
+3. For Dequeue: "title": "Dequeue", remove first element, add to result
+4. Always include "queue" field with current queue state
+5. Include meta.operation for operation display
+6. For BFS, include both "tree" and "queue" fields
+7. Return ONLY valid JSON, no extra text`;
   }
 
   getTwoPointerExample() {
