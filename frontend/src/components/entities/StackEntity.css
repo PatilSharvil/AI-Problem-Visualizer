@@ -61,8 +61,8 @@
     flex-direction: column;
     align-items: center;
     padding: 20px;
-    background: #f8f9fa;
-    border-radius: 6px;
+    background: linear-gradient(180deg, #ecfdf5 0%, #f8f9fa 50%, #f8f9fa 100%);
+    border-radius: 8px;
 }
 
 .stack-labels {
@@ -90,28 +90,33 @@
 .stack-container {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    min-width: 120px;
+    gap: 6px;
+    min-width: 150px;
     min-height: 50px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 2px dashed #ddd;
+    border-radius: 8px;
 }
 
 .stack-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 20px;
-    background: #3b82f6;
+    padding: 14px 24px;
+    background: #6366f1;
     color: white;
     font-weight: bold;
     text-align: center;
-    border-radius: 4px;
+    border-radius: 6px;
     transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .stack-item .stack-value {
     flex: 1;
     text-align: center;
-    font-size: 16px;
+    font-size: 18px;
 }
 
 .stack-item .stack-idx {
@@ -119,30 +124,105 @@
     opacity: 0.7;
 }
 
+/* Top element - Green with glow */
 .stack-item.top {
     background: #10b981;
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3), 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
+/* Highlighted element */
+.stack-item.highlighted {
+    box-shadow: 0 0 0 4px #ff9800, 0 0 20px rgba(255, 152, 0, 0.5);
+    transform: scale(1.05);
+    z-index: 10;
+}
+
+/* Push animation - slide down from top */
 .stack-item.pushing {
-    animation: pushIn 0.4s ease;
+    animation: pushIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* Pop animation - slide up and fade out */
+.stack-item.popping {
+    animation: popOut 0.4s ease-out forwards;
+}
+
+/* Peek/processing animation */
+.stack-item.peeking {
+    animation: peekPulse 0.8s ease-in-out infinite;
+}
+
+.stack-empty {
+    padding: 40px;
+    color: #999;
+    font-style: italic;
+    text-align: center;
+    background: #f8f8f8;
+    border-radius: 8px;
+}
+
+/* ========== KEYFRAME ANIMATIONS ========== */
+
+/* Push: element slides down from above */
 @keyframes pushIn {
     0% {
-        transform: translateY(-30px);
+        transform: translateY(-50px) scale(0.8);
         opacity: 0;
     }
 
+    60% {
+        transform: translateY(5px) scale(1.05);
+        opacity: 1;
+    }
+
     100% {
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
         opacity: 1;
     }
 }
 
-.stack-empty {
-    padding: 30px;
-    color: #999;
-    font-style: italic;
-    text-align: center;
+/* Pop: element slides up and fades */
+@keyframes popOut {
+    0% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+
+    40% {
+        transform: translateY(-10px) scale(1.1);
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: translateY(-60px) scale(0.5);
+        opacity: 0;
+    }
+}
+
+/* Peek: pulse effect for top element being examined */
+@keyframes peekPulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3);
+    }
+
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.5), 0 0 20px rgba(16, 185, 129, 0.3);
+    }
+}
+
+/* Highlight glow */
+@keyframes highlightGlow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 4px #ff9800;
+    }
+
+    50% {
+        box-shadow: 0 0 0 8px rgba(255, 152, 0, 0.5);
+    }
 }

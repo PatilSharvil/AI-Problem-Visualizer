@@ -18,6 +18,78 @@ class UniversalNormalizer {
         return { structures, steps };
     }
 
+    /**
+     * Normalize with query-based structure type override
+     * This fixes LLM outputting wrong structure types
+     */
+    normalizeWithQuery(llmOutput, query = '') {
+        if (!llmOutput || typeof llmOutput !== 'object') {
+            return this.getFallback();
+        }
+
+        const queryLower = query.toLowerCase();
+
+        // Determine expected structure type based on query keywords
+        let forceType = null;
+        if (queryLower.includes('binary search') ||
+            queryLower.includes('bubble sort') ||
+            queryLower.includes('selection sort') ||
+            queryLower.includes('quick sort') ||
+            queryLower.includes('merge sort') ||
+            queryLower.includes('two pointer') ||
+            queryLower.includes('sliding window') ||
+            queryLower.includes('max sum') ||
+            queryLower.includes('subarray')) {
+            forceType = 'array';
+        }
+
+        // Override structure types if needed
+        let structures = llmOutput.structures || [];
+        if (forceType === 'array' && Array.isArray(structures)) {
+            // Filter out tree structures and convert them to array
+            const convertedStructures = [];
+            let hasArray = false;
+
+            for (const struct of structures) {
+                if (struct.type === 'tree' || struct.type === 'bst' || struct.id === 'tree') {
+                    // Convert tree to array
+                    console.log(`[Normalizer] CONVERTING tree to array: id=${struct.id}, type=${struct.type}`);
+                    convertedStructures.push({
+                        id: 'arr',
+                        type: 'array',
+                        label: 'Array',
+                        data: struct.data || []
+                    });
+                    hasArray = true;
+                } else if (struct.type === 'array' || struct.id === 'arr') {
+                    // Keep existing array
+                    convertedStructures.push(struct);
+                    hasArray = true;
+                } else if (struct.id !== 'result') {
+                    // Skip other unknown structures except result
+                    console.log(`[Normalizer] SKIPPING structure: id=${struct.id}, type=${struct.type}`);
+                }
+            }
+
+            // If no array found, create one from first structure
+            if (!hasArray && structures.length > 0) {
+                convertedStructures.push({
+                    id: 'arr',
+                    type: 'array',
+                    label: 'Array',
+                    data: structures[0].data || []
+                });
+            }
+
+            structures = convertedStructures;
+        }
+
+        const normalizedStructures = this.normalizeStructures(structures);
+        const steps = this.normalizeSteps(llmOutput.steps || [], normalizedStructures);
+
+        return { structures: normalizedStructures, steps };
+    }
+
     normalizeStructures(structures) {
         if (!Array.isArray(structures)) return [];
 
@@ -172,10 +244,11 @@ class UniversalNormalizer {
     /**
      * Convert normalized data to renderable frames with entities and actions
      */
-    toFrames(normalized) {
+    toFrames(normalized, options = {}) {
         const { structures, steps } = normalized;
         const frames = [];
         let prevEntities = null;
+        const skipTree = options.skipTree || false;
 
         // Pre-scan: find all entities that EVER have data (to show empty states later)
         const entitiesWithData = new Set();
@@ -190,7 +263,7 @@ class UniversalNormalizer {
 
         for (let i = 0; i < steps.length; i++) {
             const step = steps[i];
-            const entities = this.buildEntities(step, structures, entitiesWithData);
+            const entities = this.buildEntities(step, structures, entitiesWithData, skipTree);
             const actions = this.detectActions(step, entities, prevEntities);
 
             frames.push({
@@ -213,8 +286,9 @@ class UniversalNormalizer {
      * @param {Object} step - Current step data
      * @param {Array} structures - LLM-defined structures
      * @param {Set} entitiesWithData - Set of entity IDs that have data in ANY step (for empty state rendering)
+     * @param {boolean} skipTree - If true, skip creating tree entities (for array queries)
      */
-    buildEntities(step, structures, entitiesWithData = new Set()) {
+    buildEntities(step, structures, entitiesWithData = new Set(), skipTree = false) {
         const entities = [];
         const addedIds = new Set();
         const addedDataSignatures = new Set(); // Track content to avoid duplicate data
@@ -245,7 +319,9 @@ class UniversalNormalizer {
                     data: data,
                     meta: {
                         label: struct.label,
-                        pointers: this.getPointersForEntity(step.pointers, struct.id)
+                        pointers: struct.id === 'arr'
+                            ? this.getPointersForEntity(step.pointers, struct.id, ['i', 'left', 'start', 'curr', 'right', 'mid', 'end', 'pivot', 'j'])
+                            : this.getPointersForEntity(step.pointers, struct.id)
                     }
                 });
             }
@@ -259,7 +335,7 @@ class UniversalNormalizer {
                 data: step.array,
                 meta: {
                     label: 'Array',
-                    pointers: this.getPointersForEntity(step.pointers, 'arr', ['i', 'left', 'start', 'curr'])
+                    pointers: this.getPointersForEntity(step.pointers, 'arr', ['i', 'left', 'start', 'curr', 'right', 'mid', 'end', 'pivot'])
                 }
             });
         }
@@ -323,7 +399,8 @@ class UniversalNormalizer {
         }
 
         // Handle tree - ALWAYS update tree data (don't skip if already added)
-        if (step.tree) {
+        // BUT skip tree creation if skipTree is true (for array queries like binary search)
+        if (step.tree && !skipTree) {
             // Extract current node from step title using multiple patterns
             let currentNode = null;
 

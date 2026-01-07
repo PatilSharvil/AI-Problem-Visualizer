@@ -27,6 +27,55 @@ function runExecutors(llmOutput, originalProblem = '') {
         return llmOutput;
     }
 
+    // FIRST: Check for deterministic algorithms that bypass LLM entirely
+    const binarySearchResult = deterministicBinarySearch(originalProblem);
+    if (binarySearchResult) {
+        console.log('[Executor] Using DETERMINISTIC binary search - bypassing LLM output');
+        return binarySearchResult;
+    }
+
+    const linearSearchResult = deterministicLinearSearch(originalProblem);
+    if (linearSearchResult) {
+        console.log('[Executor] Using DETERMINISTIC linear search - bypassing LLM output');
+        return linearSearchResult;
+    }
+
+    const slidingWindowResult = deterministicSlidingWindow(originalProblem);
+    if (slidingWindowResult) {
+        console.log('[Executor] Using DETERMINISTIC sliding window - bypassing LLM output');
+        return slidingWindowResult;
+    }
+
+    const bubbleSortResult = deterministicBubbleSort(originalProblem);
+    if (bubbleSortResult) {
+        console.log('[Executor] Using DETERMINISTIC bubble sort - bypassing LLM output');
+        return bubbleSortResult;
+    }
+
+    const selectionSortResult = deterministicSelectionSort(originalProblem);
+    if (selectionSortResult) {
+        console.log('[Executor] Using DETERMINISTIC selection sort - bypassing LLM output');
+        return selectionSortResult;
+    }
+
+    const insertionSortResult = deterministicInsertionSort(originalProblem);
+    if (insertionSortResult) {
+        console.log('[Executor] Using DETERMINISTIC insertion sort - bypassing LLM output');
+        return insertionSortResult;
+    }
+
+    const quickSortResult = deterministicQuickSort(originalProblem);
+    if (quickSortResult) {
+        console.log('[Executor] Using DETERMINISTIC quick sort - bypassing LLM output');
+        return quickSortResult;
+    }
+
+    const mergeSortResult = deterministicMergeSort(originalProblem);
+    if (mergeSortResult) {
+        console.log('[Executor] Using DETERMINISTIC merge sort - bypassing LLM output');
+        return mergeSortResult;
+    }
+
     if (!llmOutput || typeof llmOutput !== 'object') {
         return llmOutput;
     }
@@ -83,6 +132,600 @@ function runExecutors(llmOutput, originalProblem = '') {
     }
 
     return output;
+}
+
+/**
+ * Deterministic Binary Search - replaces LLM output entirely
+ * @param {string} query - User query like "Binary search for 5 in [1,2,3,4,5,6,7]"
+ * @returns {Object|null} - Complete visualization output or null if not binary search
+ */
+function deterministicBinarySearch(query) {
+    if (!query) return null;
+
+    const queryLower = query.toLowerCase();
+    if (!queryLower.includes('binary search')) return null;
+
+    // Parse target and array from query
+    const targetMatch = query.match(/(?:for|find)\s+(\d+)/i);
+    const arrayMatch = query.match(/\[([0-9,\s]+)\]/);
+
+    if (!targetMatch || !arrayMatch) return null;
+
+    const target = parseInt(targetMatch[1]);
+    const arr = arrayMatch[1].split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+
+    if (arr.length === 0) return null;
+
+    console.log(`[Binary Search Executor] Target: ${target}, Array: [${arr.join(',')}]`);
+
+    // Generate binary search steps
+    const steps = [];
+    let left = 0;
+    let right = arr.length - 1;
+    let found = false;
+    let foundIndex = -1;
+
+    // Initial step
+    steps.push({
+        title: "Initialize",
+        description: `left=0, right=${right}, searching for ${target}`,
+        array: [...arr],
+        pointers: { left: 0, right: right },
+        highlight: [0, right]
+    });
+
+    while (left <= right) {
+        const mid = Math.floor((left + right) / 2);
+        const midVal = arr[mid];
+
+        if (midVal === target) {
+            steps.push({
+                title: `Found at index ${mid}`,
+                description: `arr[${mid}] = ${midVal} = ${target}. Found!`,
+                array: [...arr],
+                pointers: { left, mid, right },
+                highlight: [mid],
+                result: [mid]
+            });
+            found = true;
+            foundIndex = mid;
+            break;
+        } else if (midVal < target) {
+            steps.push({
+                title: `Check mid=${mid}`,
+                description: `arr[${mid}] = ${midVal} < ${target}, search right half`,
+                array: [...arr],
+                pointers: { left, mid, right },
+                highlight: [mid]
+            });
+            left = mid + 1;
+        } else {
+            steps.push({
+                title: `Check mid=${mid}`,
+                description: `arr[${mid}] = ${midVal} > ${target}, search left half`,
+                array: [...arr],
+                pointers: { left, mid, right },
+                highlight: [mid]
+            });
+            right = mid - 1;
+        }
+    }
+
+    if (!found) {
+        steps.push({
+            title: "Not Found",
+            description: `${target} is not in the array`,
+            array: [...arr],
+            result: [-1]
+        });
+    }
+
+    return {
+        structures: [
+            { id: "arr", type: "array", label: "Array", data: arr }
+        ],
+        steps: steps
+    };
+}
+
+/**
+ * Deterministic Linear Search - replaces LLM output entirely
+ */
+function deterministicLinearSearch(query) {
+    if (!query) return null;
+
+    const queryLower = query.toLowerCase();
+    if (!queryLower.includes('linear search') && !queryLower.includes('linear') && !queryLower.includes('sequential search')) {
+        return null;
+    }
+
+    const targetMatch = query.match(/(?:for|find)\s+(\d+)/i);
+    const arrayMatch = query.match(/\[([0-9,\s]+)\]/);
+
+    if (!targetMatch || !arrayMatch) return null;
+
+    const target = parseInt(targetMatch[1]);
+    const arr = arrayMatch[1].split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+
+    if (arr.length === 0) return null;
+
+    console.log(`[Linear Search Executor] Target: ${target}, Array: [${arr.join(',')}]`);
+
+    const steps = [];
+    let found = false;
+
+    steps.push({
+        title: "Start Search",
+        description: `Looking for ${target}`,
+        array: [...arr],
+        pointers: { curr: 0 },
+        highlight: [0]
+    });
+
+    for (let i = 0; i < arr.length; i++) {
+        if (arr[i] === target) {
+            steps.push({
+                title: `Found at index ${i}`,
+                description: `arr[${i}] = ${arr[i]} = ${target}. Found!`,
+                array: [...arr],
+                pointers: { curr: i },
+                highlight: [i],
+                result: [i]
+            });
+            found = true;
+            break;
+        } else {
+            steps.push({
+                title: `Check index ${i}`,
+                description: `arr[${i}] = ${arr[i]} ≠ ${target}`,
+                array: [...arr],
+                pointers: { curr: i },
+                highlight: [i]
+            });
+        }
+    }
+
+    if (!found) {
+        steps.push({
+            title: "Not Found",
+            description: `${target} is not in the array`,
+            array: [...arr],
+            result: [-1]
+        });
+    }
+
+    return {
+        structures: [{ id: "arr", type: "array", label: "Array", data: arr }],
+        steps: steps
+    };
+}
+
+/**
+ * Deterministic Sliding Window - Max Sum of Size K
+ */
+function deterministicSlidingWindow(query) {
+    if (!query) return null;
+
+    const queryLower = query.toLowerCase();
+    if (!queryLower.includes('sliding window') && !queryLower.includes('max sum') &&
+        !queryLower.includes('maximum sum') && !queryLower.includes('subarray') &&
+        !queryLower.includes('window') && !queryLower.includes('consecutive')) {
+        return null;
+    }
+
+    // Parse window size - support: size 3, k=2, k = 2, of 3, 2 consecutive
+    const sizeMatch = query.match(/(?:size|k\s*=|of)\s*(\d+)/i) || query.match(/(\d+)\s*consecutive/i);
+    const arrayMatch = query.match(/\[([0-9,\s\-]+)\]/);
+
+    if (!sizeMatch || !arrayMatch) return null;
+
+    const k = parseInt(sizeMatch[1]);
+    const arr = arrayMatch[1].split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+
+    if (arr.length === 0 || k > arr.length || k <= 0) return null;
+
+    console.log(`[Sliding Window Executor] K: ${k}, Array: [${arr.join(',')}]`);
+
+    const steps = [];
+    let windowSum = 0;
+    let maxSum = 0;
+    let maxStart = 0;
+
+    // Calculate initial window
+    for (let i = 0; i < k; i++) {
+        windowSum += arr[i];
+    }
+    maxSum = windowSum;
+
+    // Create highlight for first window
+    const firstHighlight = [];
+    for (let i = 0; i < k; i++) firstHighlight.push(i);
+
+    steps.push({
+        title: `Window [0-${k - 1}]`,
+        description: `Initial window sum = ${windowSum}`,
+        array: [...arr],
+        pointers: { start: 0, end: k - 1 },
+        highlight: firstHighlight,
+        variables: { windowSum, maxSum }
+    });
+
+    // Slide the window
+    for (let i = k; i < arr.length; i++) {
+        const remove = arr[i - k];
+        const add = arr[i];
+        windowSum = windowSum - remove + add;
+
+        if (windowSum > maxSum) {
+            maxSum = windowSum;
+            maxStart = i - k + 1;
+        }
+
+        const windowHighlight = [];
+        for (let j = i - k + 1; j <= i; j++) windowHighlight.push(j);
+
+        steps.push({
+            title: `Window [${i - k + 1}-${i}]`,
+            description: `Remove ${remove}, add ${add}. Sum = ${windowSum}`,
+            array: [...arr],
+            pointers: { start: i - k + 1, end: i },
+            highlight: windowHighlight,
+            variables: { windowSum, maxSum }
+        });
+    }
+
+    // Result step
+    const resultHighlight = [];
+    for (let i = maxStart; i < maxStart + k; i++) resultHighlight.push(i);
+
+    steps.push({
+        title: "Result",
+        description: `Max sum = ${maxSum} at window [${maxStart}-${maxStart + k - 1}]`,
+        array: [...arr],
+        highlight: resultHighlight,
+        result: [maxSum]
+    });
+
+    return {
+        structures: [{ id: "arr", type: "array", label: "Array", data: arr }],
+        steps: steps
+    };
+}
+
+/**
+ * Deterministic Bubble Sort
+ */
+function deterministicBubbleSort(query) {
+    if (!query) return null;
+    const queryLower = query.toLowerCase();
+    if (!queryLower.includes('bubble sort') && !queryLower.includes('bubble')) return null;
+
+    const arrayMatch = query.match(/\[([0-9,\s\-]+)\]/);
+    if (!arrayMatch) return null;
+
+    let arr = arrayMatch[1].split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+    if (arr.length === 0) return null;
+
+    console.log(`[Bubble Sort Executor] Array: [${arr.join(',')}]`);
+
+    const steps = [];
+    const original = [...arr];
+
+    steps.push({
+        title: "Initial Array",
+        description: `Array to sort: [${arr.join(', ')}]`,
+        array: [...arr]
+    });
+
+    for (let i = 0; i < arr.length - 1; i++) {
+        for (let j = 0; j < arr.length - 1 - i; j++) {
+            if (arr[j] > arr[j + 1]) {
+                steps.push({
+                    title: `Compare [${j}] & [${j + 1}]`,
+                    description: `${arr[j]} > ${arr[j + 1]}, swap`,
+                    array: [...arr],
+                    highlight: [j, j + 1]
+                });
+                [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+                steps.push({
+                    title: "Swapped",
+                    description: `Now: [${arr.join(', ')}]`,
+                    array: [...arr],
+                    highlight: [j, j + 1]
+                });
+            } else {
+                steps.push({
+                    title: `Compare [${j}] & [${j + 1}]`,
+                    description: `${arr[j]} ≤ ${arr[j + 1]}, no swap`,
+                    array: [...arr],
+                    highlight: [j, j + 1]
+                });
+            }
+        }
+        steps.push({
+            title: `Pass ${i + 1} Done`,
+            description: `${arr[arr.length - 1 - i]} in position`,
+            array: [...arr],
+            highlight: [arr.length - 1 - i]
+        });
+    }
+
+    steps.push({
+        title: "Sorted!",
+        description: `Final: [${arr.join(', ')}]`,
+        array: [...arr],
+        result: [...arr]
+    });
+
+    return { structures: [{ id: "arr", type: "array", label: "Array", data: original }], steps };
+}
+
+/**
+ * Deterministic Selection Sort
+ */
+function deterministicSelectionSort(query) {
+    if (!query) return null;
+    const queryLower = query.toLowerCase();
+    if (!queryLower.includes('selection sort') && !queryLower.includes('selection')) return null;
+
+    const arrayMatch = query.match(/\[([0-9,\s\-]+)\]/);
+    if (!arrayMatch) return null;
+
+    let arr = arrayMatch[1].split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+    if (arr.length === 0) return null;
+
+    console.log(`[Selection Sort Executor] Array: [${arr.join(',')}]`);
+
+    const steps = [];
+    const original = [...arr];
+
+    steps.push({
+        title: "Initial Array",
+        description: `Array to sort: [${arr.join(', ')}]`,
+        array: [...arr]
+    });
+
+    for (let i = 0; i < arr.length - 1; i++) {
+        let minIdx = i;
+        for (let j = i + 1; j < arr.length; j++) {
+            if (arr[j] < arr[minIdx]) minIdx = j;
+        }
+
+        steps.push({
+            title: `Find min in [${i}..${arr.length - 1}]`,
+            description: `Min = ${arr[minIdx]} at index ${minIdx}`,
+            array: [...arr],
+            pointers: { i, min: minIdx },
+            highlight: [i, minIdx]
+        });
+
+        if (minIdx !== i) {
+            [arr[i], arr[minIdx]] = [arr[minIdx], arr[i]];
+            steps.push({
+                title: `Swap [${i}] ↔ [${minIdx}]`,
+                description: `Swapped ${arr[minIdx]} and ${arr[i]}`,
+                array: [...arr],
+                highlight: [i, minIdx]
+            });
+        }
+    }
+
+    steps.push({
+        title: "Sorted!",
+        description: `Final: [${arr.join(', ')}]`,
+        array: [...arr],
+        result: [...arr]
+    });
+
+    return { structures: [{ id: "arr", type: "array", label: "Array", data: original }], steps };
+}
+
+/**
+ * Deterministic Insertion Sort
+ */
+function deterministicInsertionSort(query) {
+    if (!query) return null;
+    const queryLower = query.toLowerCase();
+    if (!queryLower.includes('insertion sort') && !queryLower.includes('insertion')) return null;
+
+    const arrayMatch = query.match(/\[([0-9,\s\-]+)\]/);
+    if (!arrayMatch) return null;
+
+    let arr = arrayMatch[1].split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+    if (arr.length === 0) return null;
+
+    console.log(`[Insertion Sort Executor] Array: [${arr.join(',')}]`);
+
+    const steps = [];
+    const original = [...arr];
+
+    steps.push({
+        title: "Initial Array",
+        description: `Array to sort: [${arr.join(', ')}]`,
+        array: [...arr]
+    });
+
+    for (let i = 1; i < arr.length; i++) {
+        const key = arr[i];
+        let j = i - 1;
+
+        steps.push({
+            title: `Insert ${key}`,
+            description: `Key = ${key}, find position in sorted portion`,
+            array: [...arr],
+            pointers: { key: i },
+            highlight: [i]
+        });
+
+        while (j >= 0 && arr[j] > key) {
+            arr[j + 1] = arr[j];
+            j--;
+        }
+        arr[j + 1] = key;
+
+        steps.push({
+            title: `Placed at [${j + 1}]`,
+            description: `${key} inserted, sorted portion: [0..${i}]`,
+            array: [...arr],
+            highlight: [j + 1]
+        });
+    }
+
+    steps.push({
+        title: "Sorted!",
+        description: `Final: [${arr.join(', ')}]`,
+        array: [...arr],
+        result: [...arr]
+    });
+
+    return { structures: [{ id: "arr", type: "array", label: "Array", data: original }], steps };
+}
+
+/**
+ * Deterministic Quick Sort
+ */
+function deterministicQuickSort(query) {
+    if (!query) return null;
+    const queryLower = query.toLowerCase();
+    if (!queryLower.includes('quick sort') && !queryLower.includes('quicksort')) return null;
+
+    const arrayMatch = query.match(/\[([0-9,\s\-]+)\]/);
+    if (!arrayMatch) return null;
+
+    let arr = arrayMatch[1].split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+    if (arr.length === 0) return null;
+
+    console.log(`[Quick Sort Executor] Array: [${arr.join(',')}]`);
+
+    const steps = [];
+    const original = [...arr];
+
+    function quickSort(low, high) {
+        if (low < high) {
+            steps.push({
+                title: `Partition [${low}..${high}]`,
+                description: `Pivot = ${arr[high]}`,
+                array: [...arr],
+                pointers: { low, high, pivot: high },
+                highlight: [high]
+            });
+
+            const pivotValue = arr[high];
+            let i = low - 1;
+
+            for (let j = low; j < high; j++) {
+                if (arr[j] < pivotValue) {
+                    i++;
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                }
+            }
+            [arr[i + 1], arr[high]] = [arr[high], arr[i + 1]];
+            const pi = i + 1;
+
+            steps.push({
+                title: `Pivot placed at [${pi}]`,
+                description: `${pivotValue} now in correct position`,
+                array: [...arr],
+                highlight: [pi]
+            });
+
+            quickSort(low, pi - 1);
+            quickSort(pi + 1, high);
+        }
+    }
+
+    steps.push({
+        title: "Initial Array",
+        description: `Array to sort: [${arr.join(', ')}]`,
+        array: [...arr]
+    });
+
+    quickSort(0, arr.length - 1);
+
+    steps.push({
+        title: "Sorted!",
+        description: `Final: [${arr.join(', ')}]`,
+        array: [...arr],
+        result: [...arr]
+    });
+
+    return { structures: [{ id: "arr", type: "array", label: "Array", data: original }], steps };
+}
+
+/**
+ * Deterministic Merge Sort
+ */
+function deterministicMergeSort(query) {
+    if (!query) return null;
+    const queryLower = query.toLowerCase();
+    if (!queryLower.includes('merge sort') && !queryLower.includes('mergesort')) return null;
+
+    const arrayMatch = query.match(/\[([0-9,\s\-]+)\]/);
+    if (!arrayMatch) return null;
+
+    let arr = arrayMatch[1].split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+    if (arr.length === 0) return null;
+
+    console.log(`[Merge Sort Executor] Array: [${arr.join(',')}]`);
+
+    const steps = [];
+    const original = [...arr];
+
+    function merge(left, mid, right) {
+        const leftArr = arr.slice(left, mid + 1);
+        const rightArr = arr.slice(mid + 1, right + 1);
+
+        steps.push({
+            title: `Merge [${left}..${mid}] + [${mid + 1}..${right}]`,
+            description: `[${leftArr.join(',')}] + [${rightArr.join(',')}]`,
+            array: [...arr],
+            highlight: Array.from({ length: right - left + 1 }, (_, i) => left + i)
+        });
+
+        let i = 0, j = 0, k = left;
+        while (i < leftArr.length && j < rightArr.length) {
+            if (leftArr[i] <= rightArr[j]) {
+                arr[k++] = leftArr[i++];
+            } else {
+                arr[k++] = rightArr[j++];
+            }
+        }
+        while (i < leftArr.length) arr[k++] = leftArr[i++];
+        while (j < rightArr.length) arr[k++] = rightArr[j++];
+
+        steps.push({
+            title: `Merged`,
+            description: `Result: [${arr.slice(left, right + 1).join(',')}]`,
+            array: [...arr],
+            highlight: Array.from({ length: right - left + 1 }, (_, i) => left + i)
+        });
+    }
+
+    function mergeSort(left, right) {
+        if (left < right) {
+            const mid = Math.floor((left + right) / 2);
+            mergeSort(left, mid);
+            mergeSort(mid + 1, right);
+            merge(left, mid, right);
+        }
+    }
+
+    steps.push({
+        title: "Initial Array",
+        description: `Array to sort: [${arr.join(', ')}]`,
+        array: [...arr]
+    });
+
+    mergeSort(0, arr.length - 1);
+
+    steps.push({
+        title: "Sorted!",
+        description: `Final: [${arr.join(', ')}]`,
+        array: [...arr],
+        result: [...arr]
+    });
+
+    return { structures: [{ id: "arr", type: "array", label: "Array", data: original }], steps };
 }
 
 /**

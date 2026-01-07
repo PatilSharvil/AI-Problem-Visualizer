@@ -90,7 +90,10 @@ class OllamaAdapter extends LLMAdapterInterface {
       problemLower.includes('balanced')
     );
 
-    if (hasMultiOps) {
+    // FIRST: Check for explicit binary search (array algorithm)
+    if (problemLower.includes('binary search')) {
+      examples = this.getArrayComprehensiveExample();
+    } else if (hasMultiOps) {
       examples = this.getTreeComprehensiveExample(); // Use comprehensive for multi-ops
     } else if (hasTreeProperty) {
       examples = this.getTreeComprehensiveExample(); // Use comprehensive for property queries
@@ -102,11 +105,18 @@ class OllamaAdapter extends LLMAdapterInterface {
       examples = this.getInorderExample();
     } else if ((problemLower.includes('insert') || problemLower.includes('add') || problemLower.includes('create')) && hasTree) {
       examples = this.getTreeComprehensiveExample(); // Use comprehensive for insert
+    } else if (problemLower.includes('binary search') || (problemLower.includes('search') && problemLower.includes('[') && !hasTree)) {
+      // Binary search on arrays - detect BEFORE tree search
+      examples = this.getArrayComprehensiveExample();
     } else if ((problemLower.includes('search') || problemLower.includes('find') || problemLower.includes('present') || problemLower.includes('contains')) && hasTree) {
       examples = this.getTreeSearchExample();
     } else if ((problemLower.includes('delete') || problemLower.includes('remove')) && hasTree) {
       examples = this.getTreeComprehensiveExample(); // Use comprehensive for delete
-    } else if (problemLower.includes('stack') || problemLower.includes('parenthes') || problemLower.includes('bracket')) {
+    } else if (problemLower.includes('stack') || problemLower.includes('parenthes') || problemLower.includes('bracket') ||
+      problemLower.includes('push') || problemLower.includes('pop') || problemLower.includes('lifo') ||
+      problemLower.includes('last in') || problemLower.includes('reverse') && !problemLower.includes('array') ||
+      problemLower.includes('expression') || problemLower.includes('postfix') || problemLower.includes('infix') ||
+      problemLower.includes('undo') || problemLower.includes('next greater') || problemLower.includes('valid')) {
       examples = this.getStackExample();
     } else if (problemLower.includes('queue') || problemLower.includes('bfs') || problemLower.includes('level order') ||
       problemLower.includes('enqueue') || problemLower.includes('dequeue') || problemLower.includes('fifo') ||
@@ -115,10 +125,16 @@ class OllamaAdapter extends LLMAdapterInterface {
       examples = this.getQueueExample();
     } else if (problemLower.includes('two pointer') || problemLower.includes('pair') || (problemLower.includes('sum') && problemLower.includes('sorted'))) {
       examples = this.getTwoPointerExample();
-    } else if (problemLower.includes('sliding') || problemLower.includes('window') || problemLower.includes('subarray')) {
+    } else if (problemLower.includes('sliding') || problemLower.includes('window') || problemLower.includes('subarray') ||
+      problemLower.includes('max sum') || problemLower.includes('min sum')) {
       examples = this.getSlidingWindowExample();
-    } else if (problemLower.includes('sort') || problemLower.includes('bubble') || problemLower.includes('selection')) {
+    } else if (problemLower.includes('sort') || problemLower.includes('bubble') || problemLower.includes('selection') ||
+      problemLower.includes('quick') || problemLower.includes('merge') || problemLower.includes('partition') ||
+      problemLower.includes('pivot')) {
       examples = this.getSortExample();
+    } else if (problemLower.includes('binary search') || problemLower.includes('search') && problemLower.includes('sorted') ||
+      problemLower.includes('find') && problemLower.includes('[')) {
+      examples = this.getArrayComprehensiveExample();
     } else if (hasTree) {
       examples = this.getTreeComprehensiveExample(); // Use comprehensive for generic tree
     } else {
@@ -479,14 +495,149 @@ IMPORTANT:
   }
 
   getStackExample() {
-    return `=== STACK FORMAT ===
+    return `
+=== COMPREHENSIVE STACK VISUALIZATION GUIDE ===
+
+STACK FORMAT (LIFO - Last In, First Out):
+     ┌─────┐
+TOP →│  D  │ ← Push here, Pop from here
+     ├─────┤
+     │  C  │
+     ├─────┤
+     │  B  │
+     ├─────┤
+BOT →│  A  │
+     └─────┘
+
+OPERATIONS:
+- Push: Add to TOP (end of array)
+- Pop: Remove from TOP (end of array)
+- Peek: View top element without removing
+- Array format: [bottom, ..., top] - last element is TOP
+
+================================================================================
+CORE STACK OPERATIONS
+================================================================================
+
+--- Basic Push/Pop ---
+Problem: Push 1,2,3 then pop twice
+
 {
   "structures": [{"id": "stack", "type": "stack", "label": "Stack", "data": []}],
   "steps": [
-    {"title": "Push X", "description": "Add X to stack", "stack": [X]},
-    {"title": "Pop", "description": "Remove top", "stack": []}
+    {"title": "Push 1", "description": "1 becomes bottom and top", "stack": [1]},
+    {"title": "Push 2", "description": "2 is new top", "stack": [1,2]},
+    {"title": "Push 3", "description": "3 is new top", "stack": [1,2,3]},
+    {"title": "Pop", "description": "Remove 3 from top", "stack": [1,2], "result": [3]},
+    {"title": "Pop", "description": "Remove 2 from top", "stack": [1], "result": [3,2]}
   ]
-}`;
+}
+
+================================================================================
+VALID PARENTHESES / BRACKET MATCHING
+================================================================================
+
+For bracket problems, READ THE USER INPUT and process each character.
+Stack stores the ACTUAL brackets from the input string.
+
+Example: User asks to check "(())" - you must process those exact 4 characters.
+
+{
+  "structures": [{"id": "stack", "type": "stack", "label": "Stack", "data": []}],
+  "steps": [
+    {"title": "Char 0: Push", "description": "Found opening ( - push it", "stack": ["("]},
+    {"title": "Char 1: Push", "description": "Found opening ( - push it", "stack": ["(","("]},
+    {"title": "Char 2: Match", "description": "Found ) - matches ( on top, pop", "stack": ["("]},
+    {"title": "Char 3: Match", "description": "Found ) - matches ( on top, pop", "stack": []},
+    {"title": "Result", "description": "Stack empty = Valid", "stack": [], "result": ["Valid"]}
+  ]
+}
+
+================================================================================
+REVERSE STRING
+================================================================================
+
+Problem: Reverse "abc" using stack
+
+{
+  "structures": [{"id": "stack", "type": "stack", "label": "Stack", "data": []}],
+  "steps": [
+    {"title": "Push 'a'", "description": "First char goes to bottom", "stack": ["a"]},
+    {"title": "Push 'b'", "description": "Second char on top of 'a'", "stack": ["a","b"]},
+    {"title": "Push 'c'", "description": "Last char is now top", "stack": ["a","b","c"]},
+    {"title": "Pop 'c'", "description": "Pop top element", "stack": ["a","b"], "result": ["c"]},
+    {"title": "Pop 'b'", "description": "Pop next element", "stack": ["a"], "result": ["c","b"]},
+    {"title": "Pop 'a'", "description": "Pop last element", "stack": [], "result": ["c","b","a"]},
+    {"title": "Done", "description": "Reversed string: 'cba'", "stack": [], "result": ["cba"]}
+  ]
+}
+
+================================================================================
+EXPRESSION EVALUATION
+================================================================================
+
+Problem: Evaluate postfix expression "23+"
+
+{
+  "structures": [{"id": "stack", "type": "stack", "label": "Operand Stack", "data": []}],
+  "steps": [
+    {"title": "Push 2", "description": "Number - push to stack", "stack": [2]},
+    {"title": "Push 3", "description": "Number - push to stack", "stack": [2,3]},
+    {"title": "Process '+'", "description": "Pop 3 and 2, compute 2+3=5, push result", "stack": [5], "result": [5]}
+  ]
+}
+
+================================================================================
+NEXT GREATER ELEMENT
+================================================================================
+
+Problem: Next greater element for [4,5,2,10]
+
+{
+  "structures": [
+    {"id": "arr", "type": "array", "label": "Array", "data": [4,5,2,10]},
+    {"id": "stack", "type": "stack", "label": "Stack", "data": []}
+  ],
+  "steps": [
+    {"title": "Process 4", "description": "Stack empty, push 4", "array": [4,5,2,10], "stack": [4], "highlight": [0]},
+    {"title": "Process 5", "description": "5 > 4, so NGE[4]=5, pop 4, push 5", "array": [4,5,2,10], "stack": [5], "result": [{"4":5}], "highlight": [1]},
+    {"title": "Process 2", "description": "2 < 5, push 2", "array": [4,5,2,10], "stack": [5,2], "highlight": [2]},
+    {"title": "Process 10", "description": "10 > 2 and 10 > 5, NGE[2]=10, NGE[5]=10", "array": [4,5,2,10], "stack": [10], "result": [{"4":5},{"5":10},{"2":10}], "highlight": [3]},
+    {"title": "Done", "description": "Remaining: NGE[10]=-1", "array": [4,5,2,10], "stack": [], "result": [5,10,10,-1]}
+  ]
+}
+
+================================================================================
+FUNCTION CALL STACK
+================================================================================
+
+Problem: Trace factorial(3) recursion
+
+{
+  "structures": [{"id": "stack", "type": "stack", "label": "Call Stack", "data": []}],
+  "steps": [
+    {"title": "Call factorial(3)", "description": "Push frame for n=3", "stack": ["f(3)"]},
+    {"title": "Call factorial(2)", "description": "3 != 0, call f(2)", "stack": ["f(3)","f(2)"]},
+    {"title": "Call factorial(1)", "description": "2 != 0, call f(1)", "stack": ["f(3)","f(2)","f(1)"]},
+    {"title": "Call factorial(0)", "description": "1 != 0, call f(0)", "stack": ["f(3)","f(2)","f(1)","f(0)"]},
+    {"title": "Return 1", "description": "Base case: f(0)=1, pop", "stack": ["f(3)","f(2)","f(1)"], "result": [1]},
+    {"title": "Return 1", "description": "f(1)=1*1=1, pop", "stack": ["f(3)","f(2)"], "result": [1]},
+    {"title": "Return 2", "description": "f(2)=2*1=2, pop", "stack": ["f(3)"], "result": [2]},
+    {"title": "Return 6", "description": "f(3)=3*2=6, pop", "stack": [], "result": [6]}
+  ]
+}
+
+================================================================================
+GENERATE YOUR RESPONSE NOW
+================================================================================
+
+IMPORTANT:
+1. Use EXACT values from the user's problem
+2. For Push: "title": "Push X"
+3. For Pop: "title": "Pop" or "Pop X"
+4. Stack array: [bottom, ..., top] - LAST element is TOP
+5. For parentheses: push opening, pop on closing match
+6. Return ONLY valid JSON, no extra text`;
   }
 
   getQueueExample() {
@@ -632,36 +783,55 @@ IMPORTANT:
   }
 
   getTwoPointerExample() {
-    return `=== TWO POINTER FORMAT ===
-{
-  "structures": [{"id": "arr", "type": "array", "label": "Array", "data": [USER_ARRAY_HERE]}],
-  "steps": [
-    {"title": "Initialize", "description": "left=0, right=N-1", "array": [VALUES], "pointers": {"left": 0, "right": N-1}, "highlight": [0, N-1]},
-    {"title": "Check", "description": "Compare values", "array": [VALUES], "pointers": {"left": L, "right": R}, "highlight": [L, R]}
-  ]
-}`;
+    return this.getArrayComprehensiveExample();
   }
 
   getSlidingWindowExample() {
-    return `=== SLIDING WINDOW FORMAT ===
-{
-  "structures": [{"id": "arr", "type": "array", "label": "Array", "data": [USER_ARRAY_HERE]}],
-  "steps": [
-    {"title": "Window [0-K]", "description": "Initial window", "array": [VALUES], "highlight": [0,1,2], "variables": {"sum": X}},
-    {"title": "Slide", "description": "Move window right", "array": [VALUES], "highlight": [1,2,3], "variables": {"sum": Y}}
-  ]
-}`;
+    return this.getArrayComprehensiveExample();
   }
 
   getSortExample() {
-    return `=== SORTING FORMAT ===
+    return this.getArrayComprehensiveExample();
+  }
+
+  getArrayComprehensiveExample() {
+    return `
+=== ARRAY ALGORITHM VISUALIZATION ===
+
+FORMAT:
+- "array": current array values
+- "highlight": indices to highlight [i,j]
+- "pointers": named markers {"left":0, "right":5}
+
+--- SORTING EXAMPLE ---
+Problem: Bubble sort [5,3,8]
+
 {
-  "structures": [{"id": "arr", "type": "array", "label": "Array", "data": [USER_ARRAY_HERE]}],
+  "structures": [{"id": "arr", "type": "array", "label": "Array", "data": [5,3,8]}],
   "steps": [
-    {"title": "Compare", "description": "Compare A and B", "array": [VALUES], "highlight": [i, j]},
-    {"title": "Swap", "description": "A > B, swap", "array": [NEW_VALUES], "highlight": [i, j]}
+    {"title": "Compare 0,1", "description": "5>3, swap needed", "array": [5,3,8], "highlight": [0,1]},
+    {"title": "Swap", "description": "Swapped", "array": [3,5,8], "highlight": [0,1]},
+    {"title": "Compare 1,2", "description": "5<8, no swap", "array": [3,5,8], "highlight": [1,2]},
+    {"title": "Sorted", "description": "Array is sorted", "array": [3,5,8], "result": [3,5,8]}
   ]
-}`;
+}
+
+--- BINARY SEARCH EXAMPLE ---
+Problem: Find 3 in [1,2,3,4,5]
+
+{
+  "structures": [{"id": "arr", "type": "array", "label": "Array", "data": [1,2,3,4,5]}],
+  "steps": [
+    {"title": "mid=2", "description": "arr[2]=3, found!", "array": [1,2,3,4,5], "pointers": {"left":0,"mid":2,"right":4}, "highlight": [2]},
+    {"title": "Found", "description": "Found at index 2", "array": [1,2,3,4,5], "highlight": [2], "result": [2]}
+  ]
+}
+
+RULES:
+1. Use EXACT values from user's input
+2. Show each compare/swap as separate step
+3. Update "array" after each modification
+4. Return ONLY valid JSON`;
   }
 
   getGenericExample() {

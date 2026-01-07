@@ -76,13 +76,24 @@ const classifyAlgorithm = async (req, res) => {
       console.log('First step keys:', Object.keys(validatedOutput.steps[0]));
     }
 
-    // Normalize to universal format
-    const normalized = normalizer.normalize(validatedOutput);
+    // Normalize to universal format (with query-based type override)
+    const normalized = normalizer.normalizeWithQuery(validatedOutput, problemStatement);
     console.log('\n=== NORMALIZED DATA ===');
     console.log('Normalized steps:', normalized.steps?.length);
 
+    // Detect if we should skip tree creation for array queries
+    const queryLower = problemStatement.toLowerCase();
+    const skipTree = queryLower.includes('binary search') ||
+      queryLower.includes('bubble sort') ||
+      queryLower.includes('selection sort') ||
+      queryLower.includes('quick sort') ||
+      queryLower.includes('two pointer') ||
+      queryLower.includes('sliding window');
+
+    console.log('Skip tree for frames:', skipTree);
+
     // Convert to entity+action frames
-    const frames = normalizer.toFrames(normalized);
+    const frames = normalizer.toFrames(normalized, { skipTree });
     console.log('\n=== GENERATED FRAMES ===');
     console.log('Total frames:', frames.length);
 
