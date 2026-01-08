@@ -2,16 +2,19 @@ const { LLMAdapterInterface } = require('./llmAdapterInterface');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 class GeminiAdapter extends LLMAdapterInterface {
-  constructor(apiKey = process.env.GEMINI_API_KEY) {
+  constructor(apiKey) {
     super();
 
     if (!apiKey) {
-      throw new Error('GEMINI_API_KEY environment variable is required when using Gemini provider');
+      throw new Error('API key is required for Gemini provider');
     }
 
     this.apiKey = apiKey;
     this.genAI = new GoogleGenerativeAI(this.apiKey);
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-2.0-flash-001" });
+    this.model = this.genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      generationConfig: { responseMimeType: "application/json" }
+    });
   }
 
   async callLLM(prompt) {
@@ -24,13 +27,26 @@ class GeminiAdapter extends LLMAdapterInterface {
         throw new Error('Gemini API did not return expected response format');
       }
 
+      console.log('[GeminiAdapter] Raw Response:', responseText);
+
       // Find and parse the JSON from the response
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      // More robust regex for JSON extraction (works for objects and arrays)
+      const jsonMatch = responseText.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
       if (!jsonMatch) {
+        console.error('[GeminiAdapter] No JSON found in response:', responseText);
         throw new Error('LLM did not return valid JSON format');
       }
 
-      return JSON.parse(jsonMatch[0]);
+      const cleanJson = jsonMatch[1].trim();
+      console.log('[GeminiAdapter] Attempting to parse:', cleanJson);
+
+      try {
+        return JSON.parse(cleanJson);
+      } catch (parseError) {
+        console.error('[GeminiAdapter] JSON Parse Error:', parseError.message);
+        console.error('[GeminiAdapter] Problematic string:', cleanJson);
+        throw parseError;
+      }
     } catch (error) {
       console.error('Error calling Gemini API:', error);
       throw error;

@@ -142,6 +142,26 @@ function runExecutors(llmOutput, originalProblem = '') {
         return universalTreeResult;
     }
 
+    // FINAL FALLBACK: If LLM failed and no specific deterministic match, 
+    // try to at least show the array if one exists in the query
+    if (!llmOutput) {
+        const arrayMatch = originalProblem.match(/\[([0-9,\s\-]+)\]/);
+        if (arrayMatch) {
+            console.log('[Executor] FINAL FALLBACK - Showing array from query');
+            const arr = arrayMatch[1].split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+            if (arr.length > 0) {
+                return {
+                    structures: [{ id: "arr", type: "array", label: "Array", data: arr }],
+                    steps: [{
+                        title: "Detected Array",
+                        description: "No specific algorithm detected. Displaying array from query.",
+                        array: [...arr]
+                    }]
+                };
+            }
+        }
+    }
+
     if (!llmOutput || typeof llmOutput !== 'object') {
         return llmOutput;
     }
@@ -2004,17 +2024,17 @@ function treeExecutor(step, previousTree, queryOperations = []) {
         const isInsertOperation = title.includes('insert') || description.includes('insert');
         const isRemoveOperation = title.includes('remove') || title.includes('delete') || description.includes('remove') || description.includes('delete');
         const isTraversalOperation = title.includes('traversal') ||
-                                  title.includes('visit') ||
-                                  description.includes('traversal') ||
-                                  description.includes('visit') ||
-                                  title.includes('inorder') ||
-                                  title.includes('preorder') ||
-                                  title.includes('postorder');
+            title.includes('visit') ||
+            description.includes('traversal') ||
+            description.includes('visit') ||
+            title.includes('inorder') ||
+            title.includes('preorder') ||
+            title.includes('postorder');
 
         // Generate path for search operations
         if (isSearchOperation) {
             const searchMatch = title.match(/search[:\s]+(\d+)/i) || description.match(/search[:\s]+(\d+)/i) ||
-                               title.match(/find[:\s]+(\d+)/i) || description.match(/find[:\s]+(\d+)/i);
+                title.match(/find[:\s]+(\d+)/i) || description.match(/find[:\s]+(\d+)/i);
             if (searchMatch) {
                 const searchValue = parseInt(searchMatch[1]);
                 const treeRoot = levelOrderToTree(validated.tree);
@@ -2051,7 +2071,7 @@ function treeExecutor(step, previousTree, queryOperations = []) {
         // Generate path for remove operations
         if (isRemoveOperation) {
             const removeMatch = title.match(/remove[:\s]+(\d+)/i) || description.match(/remove[:\s]+(\d+)/i) ||
-                               title.match(/delete[:\s]+(\d+)/i) || description.match(/delete[:\s]+(\d+)/i);
+                title.match(/delete[:\s]+(\d+)/i) || description.match(/delete[:\s]+(\d+)/i);
             if (removeMatch) {
                 const removeValue = parseInt(removeMatch[1]);
                 const treeRoot = levelOrderToTree(validated.tree);
@@ -2089,7 +2109,7 @@ function treeExecutor(step, previousTree, queryOperations = []) {
                 // If the result is empty or doesn't match expected traversal length, use the expected one
                 if (validated.result.length === 0 ||
                     (validated.result.length !== expectedTraversal.length &&
-                     expectedTraversal.length <= validated.result.length)) {
+                        expectedTraversal.length <= validated.result.length)) {
                     validated.result = expectedTraversal;
                 } else {
                     // Otherwise, filter the result to only include values that exist in the tree
@@ -2291,7 +2311,7 @@ function isValidBST(node, min = -Infinity, max = Infinity) {
     if (node.value <= min || node.value >= max) return false;
 
     return isValidBST(node.left, min, node.value) &&
-           isValidBST(node.right, node.value, max);
+        isValidBST(node.right, node.value, max);
 }
 
 // Helper wrappers that use the BST functions defined later

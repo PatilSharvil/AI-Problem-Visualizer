@@ -36,11 +36,25 @@ const classifyAlgorithm = async (req, res) => {
       llmOutput = await llmService.classifyAlgorithm(problemStatement);
     } catch (llmError) {
       console.error('LLM Error:', llmError.message);
-      return res.status(500).json({
-        error: 'LLM processing failed',
-        message: 'The AI model returned an invalid response. Please try again.',
-        details: llmError.message
-      });
+
+      // FALLBACK: Try deterministic approach if LLM fails
+      console.log('[Controller] Attempting deterministic fallback...');
+      try {
+        const deterministicResult = runExecutors(null, problemStatement);
+        if (deterministicResult) {
+          console.log('[Controller] Successfully fell back to deterministic approach');
+          llmOutput = deterministicResult;
+        } else {
+          throw llmError; // Re-throw if no deterministic match
+        }
+      } catch (fallbackError) {
+        console.error('[Controller] Deterministic fallback failed:', fallbackError.message);
+        return res.status(500).json({
+          error: 'Processing failed',
+          message: 'The AI model failed and no deterministic fallback was found.',
+          details: llmError.message
+        });
+      }
     }
 
     // Log raw LLM output
