@@ -53,6 +53,42 @@ function runExecutors(llmOutput, originalProblem = '') {
         return validParenthesesResult;
     }
 
+    // REVERSE STRING USING STACK
+    const reverseStringResult = deterministicReverseString(originalProblem);
+    if (reverseStringResult) {
+        console.log('[Executor] Using DETERMINISTIC reverse string (stack) - bypassing LLM output');
+        return reverseStringResult;
+    }
+
+    // GENERIC STACK OPERATIONS - push/pop demonstration
+    const stackOpsResult = deterministicStackOperations(originalProblem);
+    if (stackOpsResult) {
+        console.log('[Executor] Using DETERMINISTIC stack operations - bypassing LLM output');
+        return stackOpsResult;
+    }
+
+    // UNIVERSAL STACK EXECUTOR - catches any remaining stack queries
+    // Validates LLM output and provides deterministic fallback
+    const universalStackResult = universalStackExecutor(llmOutput, originalProblem);
+    if (universalStackResult) {
+        console.log('[Executor] Using UNIVERSAL stack executor - validated/corrected output');
+        return universalStackResult;
+    }
+
+    // QUEUE OPERATIONS - enqueue/dequeue demonstration
+    const queueOpsResult = deterministicQueueOperations(originalProblem);
+    if (queueOpsResult) {
+        console.log('[Executor] Using DETERMINISTIC queue operations - bypassing LLM output');
+        return queueOpsResult;
+    }
+
+    // UNIVERSAL QUEUE EXECUTOR - catches any remaining queue queries
+    const universalQueueResult = universalQueueExecutor(llmOutput, originalProblem);
+    if (universalQueueResult) {
+        console.log('[Executor] Using UNIVERSAL queue executor - validated/corrected output');
+        return universalQueueResult;
+    }
+
     // GENERIC SORT - catches "sort the array", "sort this", etc. - defaults to bubble sort
     const genericSortResult = deterministicGenericSort(originalProblem);
     if (genericSortResult) {
@@ -88,6 +124,14 @@ function runExecutors(llmOutput, originalProblem = '') {
     if (mergeSortResult) {
         console.log('[Executor] Using DETERMINISTIC merge sort - bypassing LLM output');
         return mergeSortResult;
+    }
+
+    // UNIVERSAL ARRAY EXECUTOR - catches any remaining array queries
+    // Validates LLM output and provides deterministic fallback
+    const universalArrayResult = universalArrayExecutor(llmOutput, originalProblem);
+    if (universalArrayResult) {
+        console.log('[Executor] Using UNIVERSAL array executor - validated/corrected output');
+        return universalArrayResult;
     }
 
     if (!llmOutput || typeof llmOutput !== 'object') {
@@ -550,6 +594,768 @@ function deterministicValidParentheses(query) {
             { id: "stack", type: "stack", label: "Stack", data: [] },
             { id: "input", type: "array", label: "Input", data: bracketString.split('') }
         ],
+        steps
+    };
+}
+
+/**
+ * Deterministic Reverse String using Stack
+ * Catches: "reverse string", "reverse using stack", etc.
+ */
+function deterministicReverseString(query) {
+    if (!query) return null;
+    const queryLower = query.toLowerCase();
+
+    const isReverseWithStack =
+        (queryLower.includes('reverse') && queryLower.includes('stack')) ||
+        (queryLower.includes('reverse') && queryLower.includes('string'));
+
+    if (!isReverseWithStack) return null;
+
+    // Extract string from query
+    let inputString = '';
+    const quotedMatch = query.match(/['"]([\w\s]+)['"]/);
+    if (quotedMatch) {
+        inputString = quotedMatch[1];
+    } else {
+        // Look for word after "reverse"
+        const wordMatch = query.match(/reverse\s+(?:string\s+)?['""]?(\w+)['""]?/i);
+        if (wordMatch && wordMatch[1] !== 'string' && wordMatch[1] !== 'using') {
+            inputString = wordMatch[1];
+        }
+    }
+
+    if (!inputString) inputString = 'hello';
+
+    console.log(`[Reverse String Executor] Reversing: "${inputString}"`);
+
+    const steps = [];
+    const stack = [];
+    const chars = inputString.split('');
+
+    steps.push({
+        title: "Start",
+        description: `Input: "${inputString}"`,
+        stack: [],
+        array: chars,
+        phase: 'init'
+    });
+
+    // Push phase
+    for (let i = 0; i < chars.length; i++) {
+        stack.push(chars[i]);
+        steps.push({
+            title: `Push '${chars[i]}'`,
+            description: `Push char at index ${i} onto stack`,
+            stack: [...stack],
+            array: chars,
+            highlight: [i],
+            phase: 'push'
+        });
+    }
+
+    steps.push({
+        title: "All Pushed",
+        description: `Stack: [${stack.join(', ')}]`,
+        stack: [...stack],
+        array: chars,
+        phase: 'transition'
+    });
+
+    // Pop phase
+    const result = [];
+    for (let i = 0; i < chars.length; i++) {
+        const popped = stack.pop();
+        result.push(popped);
+        steps.push({
+            title: `Pop '${popped}'`,
+            description: `Pop and add to result`,
+            stack: [...stack],
+            result: [...result],
+            phase: 'pop'
+        });
+    }
+
+    steps.push({
+        title: "Reversed!",
+        description: `Result: "${result.join('')}"`,
+        stack: [],
+        result: result,
+        phase: 'complete'
+    });
+
+    return {
+        structures: [
+            { id: "stack", type: "stack", label: "Stack", data: [] },
+            { id: "arr", type: "array", label: "Input", data: chars }
+        ],
+        steps
+    };
+}
+
+/**
+ * Deterministic Stack Operations Demo
+ * Catches: "stack push pop", "stack operations", "demonstrate stack", etc.
+ */
+function deterministicStackOperations(query) {
+    if (!query) return null;
+    const queryLower = query.toLowerCase();
+
+    const isStackOperation =
+        (queryLower.includes('stack') && (queryLower.includes('push') || queryLower.includes('pop'))) ||
+        (queryLower.includes('stack') && queryLower.includes('operation')) ||
+        (queryLower.includes('demonstrate') && queryLower.includes('stack')) ||
+        (queryLower.includes('lifo') || queryLower.includes('last in first out'));
+
+    if (!isStackOperation) return null;
+
+    // Extract array from query
+    const arrayMatch = query.match(/\[([0-9,\s\-]+)\]/);
+    let arr = [1, 2, 3, 4, 5]; // default
+    if (arrayMatch) {
+        arr = arrayMatch[1].split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+    }
+
+    console.log(`[Stack Operations Executor] Demo with: [${arr.join(',')}]`);
+
+    const steps = [];
+    const stack = [];
+
+    steps.push({
+        title: "Empty Stack",
+        description: "Initialize empty stack",
+        stack: [],
+        array: arr
+    });
+
+    // Push all elements
+    for (let i = 0; i < arr.length; i++) {
+        stack.push(arr[i]);
+        steps.push({
+            title: `Push ${arr[i]}`,
+            description: `Push element ${arr[i]} onto stack`,
+            stack: [...stack],
+            array: arr,
+            highlight: [i]
+        });
+    }
+
+    steps.push({
+        title: "Stack Full",
+        description: `All elements pushed. Top = ${stack[stack.length - 1]}`,
+        stack: [...stack],
+        array: arr
+    });
+
+    // Pop all elements
+    const popped = [];
+    while (stack.length > 0) {
+        const val = stack.pop();
+        popped.push(val);
+        steps.push({
+            title: `Pop ${val}`,
+            description: `Pop top element: ${val}`,
+            stack: [...stack],
+            result: [...popped]
+        });
+    }
+
+    steps.push({
+        title: "LIFO Complete",
+        description: `Pop order: [${popped.join(', ')}] - Last In First Out!`,
+        stack: [],
+        result: popped
+    });
+
+    return {
+        structures: [
+            { id: "stack", type: "stack", label: "Stack", data: [] },
+            { id: "arr", type: "array", label: "Input", data: arr }
+        ],
+        steps
+    };
+}
+
+/**
+ * Universal Stack Executor - Handles any stack-related query
+ * 1. Detects if query is stack-related
+ * 2. Validates and corrects LLM output
+ * 3. Provides deterministic fallback if LLM output is invalid
+ */
+function universalStackExecutor(llmOutput, query) {
+    if (!query) return null;
+    const queryLower = query.toLowerCase();
+
+    // Check if this is a stack-related query
+    const isStackQuery =
+        queryLower.includes('stack') ||
+        queryLower.includes('lifo') ||
+        queryLower.includes('push') && queryLower.includes('pop') ||
+        queryLower.includes('undo') ||
+        queryLower.includes('backtrack');
+
+    if (!isStackQuery) return null;
+
+    console.log(`[Universal Stack Executor] Processing stack query: "${query.substring(0, 50)}..."`);
+
+    // If we have LLM output, validate and correct it
+    if (llmOutput && llmOutput.steps && Array.isArray(llmOutput.steps) && llmOutput.steps.length > 0) {
+        const correctedOutput = validateAndCorrectStackOutput(llmOutput, query);
+        if (correctedOutput) {
+            return correctedOutput;
+        }
+    }
+
+    // Fallback: Generate deterministic stack demonstration
+    return generateStackFallback(query);
+}
+
+/**
+ * Validates and corrects LLM output for stack problems
+ */
+function validateAndCorrectStackOutput(llmOutput, query) {
+    try {
+        const output = JSON.parse(JSON.stringify(llmOutput));
+
+        // Ensure structures include stack
+        if (!output.structures) {
+            output.structures = [];
+        }
+
+        const hasStack = output.structures.some(s => s.type === 'stack' || s.id === 'stack');
+        if (!hasStack) {
+            output.structures.push({
+                id: 'stack',
+                type: 'stack',
+                label: 'Stack',
+                data: []
+            });
+        }
+
+        // Validate each step has proper stack data
+        let isValid = true;
+        const simulatedStack = [];
+
+        for (let i = 0; i < output.steps.length; i++) {
+            const step = output.steps[i];
+
+            // Ensure step has title and description
+            if (!step.title) step.title = `Step ${i + 1}`;
+            if (!step.description) step.description = '';
+
+            // Detect push/pop from title and simulate stack
+            const titleLower = (step.title || '').toLowerCase();
+            const descLower = (step.description || '').toLowerCase();
+
+            if (titleLower.includes('push') || descLower.includes('push')) {
+                // Extract value being pushed
+                const valueMatch = step.title.match(/push\s+['\"]?(\w+)['\"]?/i) ||
+                    step.description.match(/push\s+['\"]?(\w+)['\"]?/i);
+                if (valueMatch) {
+                    const val = isNaN(valueMatch[1]) ? valueMatch[1] : parseInt(valueMatch[1]);
+                    simulatedStack.push(val);
+                }
+            } else if (titleLower.includes('pop') || descLower.includes('pop')) {
+                if (simulatedStack.length > 0) {
+                    simulatedStack.pop();
+                }
+            }
+
+            // Ensure step has stack field - use simulated if missing
+            if (!step.stack || !Array.isArray(step.stack)) {
+                step.stack = [...simulatedStack];
+            }
+
+            // Validate stack consistency (length should only change by 1)
+            if (i > 0 && step.stack && output.steps[i - 1].stack) {
+                const prevLen = output.steps[i - 1].stack.length;
+                const currLen = step.stack.length;
+                if (Math.abs(currLen - prevLen) > 1) {
+                    // Stack changed too much - use simulated
+                    step.stack = [...simulatedStack];
+                }
+            }
+        }
+
+        // Ensure at least one step has stack data
+        const hasStackData = output.steps.some(s => s.stack && s.stack.length > 0);
+        if (!hasStackData && output.steps.length > 1) {
+            isValid = false;
+        }
+
+        if (isValid) {
+            console.log('[Universal Stack] Validated and corrected LLM output');
+            return output;
+        }
+
+        return null;
+    } catch (e) {
+        console.error('[Universal Stack] Validation error:', e.message);
+        return null;
+    }
+}
+
+/**
+ * Generates a deterministic stack fallback based on query
+ */
+function generateStackFallback(query) {
+    console.log('[Universal Stack] Generating fallback visualization');
+
+    // Extract data from query if present
+    const arrayMatch = query.match(/\[([^\]]+)\]/);
+    let data = [];
+
+    if (arrayMatch) {
+        const items = arrayMatch[1].split(',').map(s => s.trim().replace(/['"]/g, ''));
+        data = items.filter(s => s.length > 0);
+        // Convert to numbers if all are numeric
+        if (data.every(s => !isNaN(s))) {
+            data = data.map(s => parseInt(s));
+        }
+    }
+
+    if (data.length === 0) {
+        data = ['A', 'B', 'C', 'D', 'E'];
+    }
+
+    const steps = [];
+    const stack = [];
+
+    steps.push({
+        title: 'Initialize Stack',
+        description: 'Start with empty stack',
+        stack: [],
+        array: data
+    });
+
+    // Push phase
+    for (let i = 0; i < data.length; i++) {
+        stack.push(data[i]);
+        steps.push({
+            title: `Push ${data[i]}`,
+            description: `Push element onto stack. Top is now ${data[i]}`,
+            stack: [...stack],
+            array: data,
+            highlight: [i]
+        });
+    }
+
+    steps.push({
+        title: 'Stack Filled',
+        description: `All elements pushed. Stack size: ${stack.length}`,
+        stack: [...stack],
+        array: data
+    });
+
+    // Pop phase
+    const result = [];
+    while (stack.length > 0) {
+        const val = stack.pop();
+        result.push(val);
+        steps.push({
+            title: `Pop ${val}`,
+            description: `Removed ${val} from top of stack`,
+            stack: [...stack],
+            result: [...result]
+        });
+    }
+
+    steps.push({
+        title: 'Complete',
+        description: `LIFO order: [${result.join(', ')}]`,
+        stack: [],
+        result: result
+    });
+
+    return {
+        structures: [
+            { id: 'stack', type: 'stack', label: 'Stack', data: [] },
+            { id: 'arr', type: 'array', label: 'Input', data: data }
+        ],
+        steps
+    };
+}
+
+/**
+     * Deterministic Queue Operations Demo
+     * Catches: "queue enqueue dequeue", "queue operations", "fifo", etc.
+     */
+function deterministicQueueOperations(query) {
+    if (!query) return null;
+    const queryLower = query.toLowerCase();
+
+    const isQueueOperation =
+        (queryLower.includes('queue') && (queryLower.includes('enqueue') || queryLower.includes('dequeue'))) ||
+        (queryLower.includes('queue') && queryLower.includes('operation')) ||
+        (queryLower.includes('demonstrate') && queryLower.includes('queue')) ||
+        (queryLower.includes('fifo') || queryLower.includes('first in first out'));
+
+    if (!isQueueOperation) return null;
+
+    // Extract array from query
+    const arrayMatch = query.match(/\[([0-9,\s\-]+)\]/);
+    let arr = [1, 2, 3, 4, 5];
+    if (arrayMatch) {
+        arr = arrayMatch[1].split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+    }
+
+    console.log(`[Queue Operations Executor] Demo with: [${arr.join(',')}]`);
+
+    const steps = [];
+    const queue = [];
+
+    steps.push({
+        title: "Empty Queue",
+        description: "Initialize empty queue",
+        queue: [],
+        array: arr
+    });
+
+    // Enqueue all elements
+    for (let i = 0; i < arr.length; i++) {
+        queue.push(arr[i]);
+        steps.push({
+            title: `Enqueue ${arr[i]}`,
+            description: `Add ${arr[i]} to back of queue`,
+            queue: [...queue],
+            array: arr,
+            highlight: [i]
+        });
+    }
+
+    steps.push({
+        title: "Queue Filled",
+        description: `All elements enqueued. Front = ${queue[0]}, Back = ${queue[queue.length - 1]}`,
+        queue: [...queue],
+        array: arr
+    });
+
+    // Dequeue all elements
+    const dequeued = [];
+    while (queue.length > 0) {
+        const val = queue.shift();
+        dequeued.push(val);
+        steps.push({
+            title: `Dequeue ${val}`,
+            description: `Remove front element: ${val}`,
+            queue: [...queue],
+            result: [...dequeued]
+        });
+    }
+
+    steps.push({
+        title: "FIFO Complete",
+        description: `Dequeue order: [${dequeued.join(', ')}] - First In First Out!`,
+        queue: [],
+        result: dequeued
+    });
+
+    return {
+        structures: [
+            { id: "queue", type: "queue", label: "Queue", data: [] },
+            { id: "arr", type: "array", label: "Input", data: arr }
+        ],
+        steps
+    };
+}
+
+/**
+ * Universal Queue Executor - Handles any queue-related query
+ */
+function universalQueueExecutor(llmOutput, query) {
+    if (!query) return null;
+    const queryLower = query.toLowerCase();
+
+    const isQueueQuery =
+        queryLower.includes('queue') ||
+        queryLower.includes('fifo') ||
+        queryLower.includes('bfs') ||
+        queryLower.includes('breadth') ||
+        (queryLower.includes('enqueue') || queryLower.includes('dequeue'));
+
+    if (!isQueueQuery) return null;
+
+    console.log(`[Universal Queue Executor] Processing: "${query.substring(0, 50)}..."`);
+
+    // If we have LLM output, validate and correct it
+    if (llmOutput && llmOutput.steps && Array.isArray(llmOutput.steps) && llmOutput.steps.length > 0) {
+        const correctedOutput = validateAndCorrectQueueOutput(llmOutput, query);
+        if (correctedOutput) {
+            return correctedOutput;
+        }
+    }
+
+    // Fallback
+    return generateQueueFallback(query);
+}
+
+/**
+ * Validates and corrects LLM output for queue problems
+ */
+function validateAndCorrectQueueOutput(llmOutput, query) {
+    try {
+        const output = JSON.parse(JSON.stringify(llmOutput));
+
+        if (!output.structures) output.structures = [];
+
+        const hasQueue = output.structures.some(s => s.type === 'queue' || s.id === 'queue');
+        if (!hasQueue) {
+            output.structures.push({ id: 'queue', type: 'queue', label: 'Queue', data: [] });
+        }
+
+        const simulatedQueue = [];
+
+        for (let i = 0; i < output.steps.length; i++) {
+            const step = output.steps[i];
+
+            if (!step.title) step.title = `Step ${i + 1}`;
+            if (!step.description) step.description = '';
+
+            const titleLower = (step.title || '').toLowerCase();
+            const descLower = (step.description || '').toLowerCase();
+
+            if (titleLower.includes('enqueue') || descLower.includes('enqueue') || titleLower.includes('add')) {
+                const valueMatch = step.title.match(/(?:enqueue|add)\s+['\"]?(\w+)['\"]?/i) ||
+                    step.description.match(/(?:enqueue|add)\s+['\"]?(\w+)['\"]?/i);
+                if (valueMatch) {
+                    const val = isNaN(valueMatch[1]) ? valueMatch[1] : parseInt(valueMatch[1]);
+                    simulatedQueue.push(val);
+                }
+            } else if (titleLower.includes('dequeue') || descLower.includes('dequeue') || titleLower.includes('remove')) {
+                if (simulatedQueue.length > 0) simulatedQueue.shift();
+            }
+
+            if (!step.queue || !Array.isArray(step.queue)) {
+                step.queue = [...simulatedQueue];
+            }
+        }
+
+        const hasQueueData = output.steps.some(s => s.queue && s.queue.length > 0);
+        if (hasQueueData || output.steps.length > 0) {
+            console.log('[Universal Queue] Validated LLM output');
+            return output;
+        }
+
+        return null;
+    } catch (e) {
+        console.error('[Universal Queue] Validation error:', e.message);
+        return null;
+    }
+}
+
+/**
+ * Generates deterministic queue fallback
+ */
+function generateQueueFallback(query) {
+    console.log('[Universal Queue] Generating fallback');
+
+    const arrayMatch = query.match(/\[([^\]]+)\]/);
+    let data = [];
+
+    if (arrayMatch) {
+        const items = arrayMatch[1].split(',').map(s => s.trim().replace(/['"]/g, ''));
+        data = items.filter(s => s.length > 0);
+        if (data.every(s => !isNaN(s))) data = data.map(s => parseInt(s));
+    }
+
+    if (data.length === 0) data = ['A', 'B', 'C', 'D', 'E'];
+
+    const steps = [];
+    const queue = [];
+
+    steps.push({ title: 'Initialize Queue', description: 'Start with empty queue', queue: [], array: data });
+
+    for (let i = 0; i < data.length; i++) {
+        queue.push(data[i]);
+        steps.push({
+            title: `Enqueue ${data[i]}`,
+            description: `Add to back. Front: ${queue[0]}`,
+            queue: [...queue],
+            array: data,
+            highlight: [i]
+        });
+    }
+
+    steps.push({ title: 'Queue Filled', description: `Size: ${queue.length}`, queue: [...queue], array: data });
+
+    const result = [];
+    while (queue.length > 0) {
+        const val = queue.shift();
+        result.push(val);
+        steps.push({
+            title: `Dequeue ${val}`,
+            description: `Removed from front`,
+            queue: [...queue],
+            result: [...result]
+        });
+    }
+
+    steps.push({ title: 'Complete', description: `FIFO: [${result.join(', ')}]`, queue: [], result });
+
+    return {
+        structures: [
+            { id: 'queue', type: 'queue', label: 'Queue', data: [] },
+            { id: 'arr', type: 'array', label: 'Input', data }
+        ],
+        steps
+    };
+}
+
+/**
+ * Universal Array Executor - Handles any array-related query
+ * 1. Detects if query is array-related
+ * 2. Validates and corrects LLM output
+ * 3. Provides deterministic fallback if LLM output is invalid
+ */
+function universalArrayExecutor(llmOutput, query) {
+    if (!query) return null;
+    const queryLower = query.toLowerCase();
+
+    // Check if this is an array-related query
+    const isArrayQuery =
+        queryLower.includes('array') ||
+        queryLower.includes('subarray') ||
+        queryLower.includes('subarrays') ||
+        queryLower.includes('element') ||
+        queryLower.includes('index') ||
+        queryLower.includes('traverse') ||
+        queryLower.includes('find') ||
+        queryLower.includes('sum') ||
+        queryLower.includes('max') ||
+        queryLower.includes('min') ||
+        queryLower.includes('target') ||
+        queryLower.includes('pair') ||
+        /\[[0-9,\s\-]+\]/.test(query); // Has array literal
+
+    if (!isArrayQuery) return null;
+
+    console.log(`[Universal Array Executor] Processing: "${query.substring(0, 50)}..."`);
+
+    // If we have LLM output, validate and correct it
+    if (llmOutput && llmOutput.steps && Array.isArray(llmOutput.steps) && llmOutput.steps.length > 0) {
+        const correctedOutput = validateAndCorrectArrayOutput(llmOutput, query);
+        if (correctedOutput) {
+            return correctedOutput;
+        }
+    }
+
+    // Fallback: Generate deterministic array traversal
+    return generateArrayFallback(query);
+}
+
+/**
+ * Validates and corrects LLM output for array problems
+ */
+function validateAndCorrectArrayOutput(llmOutput, query) {
+    try {
+        const output = JSON.parse(JSON.stringify(llmOutput));
+
+        // Ensure structures include array
+        if (!output.structures) output.structures = [];
+
+        const hasArray = output.structures.some(s => s.type === 'array' || s.id === 'arr');
+        if (!hasArray) {
+            // Extract array from query
+            const arrayMatch = query.match(/\[([0-9,\s\-]+)\]/);
+            let data = [1, 2, 3, 4, 5];
+            if (arrayMatch) {
+                data = arrayMatch[1].split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+            }
+            output.structures.unshift({ id: 'arr', type: 'array', label: 'Array', data });
+        }
+
+        // Validate each step
+        for (let i = 0; i < output.steps.length; i++) {
+            const step = output.steps[i];
+
+            if (!step.title) step.title = `Step ${i + 1}`;
+            if (!step.description) step.description = '';
+
+            // Ensure step has array data
+            if (!step.array && output.structures.length > 0) {
+                const arrStruct = output.structures.find(s => s.type === 'array');
+                if (arrStruct) step.array = arrStruct.data;
+            }
+
+            // Validate pointers are within bounds
+            if (step.pointers && step.array) {
+                for (const [key, val] of Object.entries(step.pointers)) {
+                    if (typeof val === 'number' && (val < 0 || val >= step.array.length)) {
+                        step.pointers[key] = Math.max(0, Math.min(val, step.array.length - 1));
+                    }
+                }
+            }
+
+            // Validate highlight indices
+            if (step.highlight && step.array) {
+                step.highlight = step.highlight.filter(idx => idx >= 0 && idx < step.array.length);
+            }
+        }
+
+        // Ensure at least one step has array data
+        const hasArrayData = output.steps.some(s => s.array && s.array.length > 0);
+        if (hasArrayData) {
+            console.log('[Universal Array] Validated LLM output');
+            return output;
+        }
+
+        return null;
+    } catch (e) {
+        console.error('[Universal Array] Validation error:', e.message);
+        return null;
+    }
+}
+
+/**
+ * Generates deterministic array traversal fallback
+ */
+function generateArrayFallback(query) {
+    console.log('[Universal Array] Generating fallback');
+
+    const arrayMatch = query.match(/\[([0-9,\s\-]+)\]/);
+    let data = [];
+
+    if (arrayMatch) {
+        data = arrayMatch[1].split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+    }
+
+    if (data.length === 0) data = [5, 2, 8, 1, 9, 3, 7, 4, 6];
+
+    const steps = [];
+
+    steps.push({
+        title: 'Initial Array',
+        description: `Array: [${data.join(', ')}]`,
+        array: data
+    });
+
+    // Simple traversal with highlights
+    for (let i = 0; i < data.length; i++) {
+        steps.push({
+            title: `Visit Index ${i}`,
+            description: `Value at [${i}] = ${data[i]}`,
+            array: data,
+            pointers: { i },
+            highlight: [i]
+        });
+    }
+
+    // Find max and min
+    const max = Math.max(...data);
+    const min = Math.min(...data);
+    const maxIdx = data.indexOf(max);
+    const minIdx = data.indexOf(min);
+
+    steps.push({
+        title: 'Analysis Complete',
+        description: `Max: ${max} at [${maxIdx}], Min: ${min} at [${minIdx}]`,
+        array: data,
+        highlight: [maxIdx, minIdx],
+        result: { max, min, maxIdx, minIdx }
+    });
+
+    return {
+        structures: [{ id: 'arr', type: 'array', label: 'Array', data }],
         steps
     };
 }

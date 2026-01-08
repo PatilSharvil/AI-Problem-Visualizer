@@ -32,12 +32,12 @@ const VisualCanvas = ({ frame }) => {
     }
 
     return (
-        <div className="relative w-full h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-surface via-background to-background p-6 overflow-auto">
+        <div className="relative w-full h-full min-h-[500px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-surface via-background to-background p-4 overflow-auto">
             {/* Grid Pattern Background */}
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
 
-            {/* Entities Grid */}
-            <div className="relative z-10 flex flex-wrap gap-6 justify-center items-start">
+            {/* Entities Grid - vertical layout for better space use */}
+            <div className="relative z-10 flex flex-col gap-4 items-center min-h-full">
                 {entities.map((entity, index) => {
                     const { id, type, data, meta } = entity;
                     const actions = frame.actions || [];

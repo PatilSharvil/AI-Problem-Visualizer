@@ -112,7 +112,7 @@ function VisualizerPage() {
                         </div>
                     </div>
                 ) : (
-                    <div className="flex flex-col lg:flex-row gap-6 h-[80vh] animate-fade-in bg-black/20 rounded-xl overflow-hidden p-1 border border-white/5">
+                    <div className="flex flex-col lg:flex-row gap-6 h-[90vh] animate-fade-in bg-black/20 rounded-xl overflow-hidden p-1 border border-white/5">
                         {isLoading ? (
                             <div className="flex-1 flex items-center justify-center glass-panel">
                                 <div className="flex flex-col items-center gap-4">
