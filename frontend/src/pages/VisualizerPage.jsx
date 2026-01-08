@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import ProblemInput from '../components/ProblemInput';
 import FrameVisualizer from '../components/FrameVisualizer';
 import { mockFrames, mockBinarySearchFrames } from '../data/mockData';
 import clsx from 'clsx';
 import { Loader2, ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
+
 import VishvaroopLogo from '../components/VishvaroopLogo';
 
 function VisualizerPage() {
@@ -13,6 +14,29 @@ function VisualizerPage() {
     const [error, setError] = useState(null);
     const [debugData, setDebugData] = useState(null);
     const [hasStarted, setHasStarted] = useState(false);
+
+    // Auto-fill logic
+    const location = useLocation();
+    const autoFill = location.state?.autoFill;
+
+    useEffect(() => {
+        if (autoFill) {
+            const element = document.getElementById('describe-section');
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        // Hash scroll support
+        if (location.hash === '#describe-section') {
+            const element = document.getElementById('describe-section');
+            if (element) {
+                setTimeout(() => {
+                    element.scrollIntoView({ behavior: 'smooth' });
+                }, 100);
+            }
+        }
+    }, [autoFill, location.hash]);
 
     // Use mock data for now if API fails or for dev
     const handleProblemSubmit = async (problemStatement) => {
@@ -85,9 +109,19 @@ function VisualizerPage() {
                     </div>
                 </div>
 
-                <div className="text-sm font-medium text-gray-500 hidden md:block tracking-wide uppercase">
-                    Smart Algorithm Visualization
-                </div>
+                {hasStarted ? (
+                    <button
+                        onClick={() => setHasStarted(false)}
+                        className="text-sm font-medium text-gray-500 hover:text-white hidden md:flex items-center gap-2 tracking-wide uppercase transition-colors"
+                    >
+                        <ArrowLeft size={16} />
+                        Back
+                    </button>
+                ) : (
+                    <div className="text-sm font-medium text-gray-500 hidden md:block tracking-wide uppercase">
+                        Smart Algorithm Visualization
+                    </div>
+                )}
             </header>
 
             <main className="w-full max-w-7xl flex-1 flex flex-col gap-8 relative z-10">
@@ -100,14 +134,14 @@ function VisualizerPage() {
                             {/* Card Content */}
                             <div className="relative backdrop-blur-2xl bg-[#0B0F19]/70 p-8 md:p-14 w-full text-center space-y-10 rounded-3xl border border-white/10 shadow-[0_0_50px_-15px_rgba(0,0,0,0.5)]">
                                 <div className="space-y-6">
-                                    <h2 className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400 tracking-tight drop-shadow-lg">
+                                    <h2 id="describe-section" className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400 tracking-tight drop-shadow-lg">
                                         Describe your algorithm problem
                                     </h2>
                                     <p className="text-gray-400 text-lg md:text-xl font-light max-w-xl mx-auto leading-relaxed">
                                         Enter a LeetCode-style problem statement, and our AI will generate a <span className="text-cyan-400 font-medium">step-by-step visualization</span> for you.
                                     </p>
                                 </div>
-                                <ProblemInput onSubmit={handleProblemSubmit} isLoading={isLoading} />
+                                <ProblemInput onSubmit={handleProblemSubmit} isLoading={isLoading} initialValue={autoFill} />
                             </div>
                         </div>
                     </div>

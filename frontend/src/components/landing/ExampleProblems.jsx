@@ -1,7 +1,10 @@
 import React from 'react';
 import { ArrowRight, MousePointer2, Layers, ArrowUpDown, Disc, Network, GalleryHorizontalEnd } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const ExampleProblems = () => {
+    const navigate = useNavigate();
+
     const problems = [
         {
             title: "2Sum",
@@ -9,7 +12,8 @@ const ExampleProblems = () => {
             difficulty: "Easy",
             icon: <MousePointer2 />,
             color: "bg-green-500",
-            border: "border-green-500/20"
+            border: "border-green-500/20",
+            prompt: "Take an array of integers and find two numbers such that they add up to a specific target number."
         },
         {
             title: "Sliding Window Maximum",
@@ -17,7 +21,8 @@ const ExampleProblems = () => {
             difficulty: "Hard",
             icon: <Layers />,
             color: "bg-blue-500",
-            border: "border-blue-500/20"
+            border: "border-blue-500/20",
+            prompt: "Take an array of integers and a window size k, and find the maximum value in each sliding window of size k."
         },
         {
             title: "Bubble Sort",
@@ -25,7 +30,8 @@ const ExampleProblems = () => {
             difficulty: "Easy",
             icon: <ArrowUpDown />,
             color: "bg-orange-500",
-            border: "border-orange-500/20"
+            border: "border-orange-500/20",
+            prompt: "Take an array of integers and sort the array in ascending order using the Bubble Sort algorithm."
         },
         {
             title: "String Reverse",
@@ -33,7 +39,8 @@ const ExampleProblems = () => {
             difficulty: "Easy",
             icon: <Disc />,
             color: "bg-purple-500",
-            border: "border-purple-500/20"
+            border: "border-purple-500/20",
+            prompt: "Take a string and reverse it using a stack-based approach."
         },
         {
             title: "Inorder Traversal",
@@ -41,7 +48,8 @@ const ExampleProblems = () => {
             difficulty: "Medium",
             icon: <Network />,
             color: "bg-teal-500",
-            border: "border-teal-500/20"
+            border: "border-teal-500/20",
+            prompt: "Take the root of a binary tree and perform an inorder traversal of its nodes’ values."
         },
         {
             title: "Queue Operations",
@@ -49,9 +57,20 @@ const ExampleProblems = () => {
             difficulty: "Easy",
             icon: <GalleryHorizontalEnd />,
             color: "bg-pink-500",
-            border: "border-pink-500/20"
+            border: "border-pink-500/20",
+            prompt: "Take a queue and implement basic operations such as enqueue, dequeue, and peek."
         }
     ];
+
+    const handleProblemClick = (problem) => {
+        if (problem.prompt) {
+            navigate('/app', {
+                state: {
+                    autoFill: problem.prompt
+                }
+            });
+        }
+    };
 
     return (
         <section id="examples" className="py-24 bg-[#0B0F19]">
@@ -67,7 +86,11 @@ const ExampleProblems = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {problems.map((problem, index) => (
-                        <div key={index} className="group p-6 rounded-2xl bg-surface border border-white/5 hover:border-white/20 hover:bg-white/5 transition-all duration-300 flex items-center justify-between cursor-pointer">
+                        <div
+                            key={index}
+                            onClick={() => handleProblemClick(problem)}
+                            className="group p-6 rounded-2xl bg-surface border border-white/5 hover:border-white/20 hover:bg-white/5 transition-all duration-300 flex items-center justify-between cursor-pointer"
+                        >
                             <div className="flex items-center gap-4">
                                 <div className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold text-white text-xl ${problem.color.replace('bg-', 'bg-opacity-20 text-').replace('500', '400')}`}>
                                     {React.cloneElement(problem.icon, { size: 24 })}

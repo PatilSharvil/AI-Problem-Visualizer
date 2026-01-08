@@ -102,7 +102,7 @@ const Hero = () => {
     }, []);
 
     return (
-        <div className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden">
+        <div id="about" className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
                 <div className="absolute top-[-10%] left-[20%] w-[500px] h-[500px] bg-purple-900/30 rounded-full blur-[100px]" />
                 <div className="absolute top-[10%] right-[10%] w-[400px] h-[400px] bg-blue-900/20 rounded-full blur-[100px]" />

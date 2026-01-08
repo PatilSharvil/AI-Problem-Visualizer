@@ -2,9 +2,22 @@ import React, { useState } from 'react';
 import { Send, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
 
-const ProblemInput = ({ onSubmit, isLoading }) => {
+const ProblemInput = ({ onSubmit, isLoading, initialValue }) => {
   const [problemStatement, setProblemStatement] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+  const textareaRef = React.useRef(null);
+
+  // Auto-fill logic
+  React.useEffect(() => {
+    if (initialValue) {
+      setProblemStatement(initialValue);
+      // Auto-focus and move cursor to end
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        textareaRef.current.selectionStart = textareaRef.current.selectionEnd = initialValue.length;
+      }
+    }
+  }, [initialValue]);
 
   // Use anime.js for button hover effect later if needed, mostly CSS is robust enough for now
 
@@ -30,6 +43,7 @@ const ProblemInput = ({ onSubmit, isLoading }) => {
         )} />
 
         <textarea
+          ref={textareaRef}
           value={problemStatement}
           onChange={(e) => setProblemStatement(e.target.value)}
           onFocus={() => setIsFocused(true)}

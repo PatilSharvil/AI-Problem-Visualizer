@@ -1,18 +1,31 @@
 import React from 'react';
-import { MousePointer, Zap, Code } from 'lucide-react';
+import { MousePointer, Code } from 'lucide-react';
+
+const GeminiIcon = ({ size = 24, className, ...props }) => (
+    <svg
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        width={size}
+        height={size}
+        className={className}
+        {...props}
+    >
+        <path d="M12 2 L14 10 L22 12 L14 14 L12 22 L10 14 L2 12 L10 10 Z" />
+    </svg>
+);
 
 const HowItWorks = () => {
     const steps = [
         {
             id: '01',
             icon: MousePointer,
-            title: 'Pick Some Problem',
-            description: 'Choose any algorithm problem from our curated list of 100+ challenges across all difficulty levels.',
+            title: 'Define a Problem',
+            description: 'Describe your algorithm problem in plain language.',
             color: 'bg-blue-500'
         },
         {
             id: '02',
-            icon: Zap,
+            icon: GeminiIcon,
             title: 'AI Generates Visualization',
             description: 'Our AI analyzes the problem logic and instantly creates a step-by-step interactive visualization.',
             color: 'bg-cyan-400'
@@ -20,8 +33,8 @@ const HowItWorks = () => {
         {
             id: '03',
             icon: Code,
-            title: 'Write & Test',
-            description: 'Implement your solution alongside the visual reference to verify your logic in real-time.',
+            title: 'Canvas Operations',
+            description: 'Interact with the visualization canvas to explore each step. Control playback, inspect variables, and understand how the algorithm evolves in real time.',
             color: 'bg-purple-500'
         }
     ];

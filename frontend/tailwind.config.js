@@ -31,6 +31,15 @@ export default {
             backgroundImage: {
                 'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
                 'hero-gradient': 'linear-gradient(to bottom, #020617, #0B0F19)',
+            },
+            keyframes: {
+                scroll: {
+                    '0%': { transform: 'translateX(0)' },
+                    '100%': { transform: 'translateX(-50%)' },
+                }
+            },
+            animation: {
+                scroll: 'scroll 30s linear infinite',
             }
         },
     },

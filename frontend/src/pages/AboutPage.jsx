@@ -22,7 +22,7 @@ const AboutPage = () => {
                     </div>
 
                     {/* Mission Section */}
-                    <div className="mb-20">
+                    <div id="mission" className="mb-20">
                         <h2 className="text-3xl font-bold text-white mb-6">Our Mission</h2>
                         <div className="bg-surface border border-white/10 p-8 rounded-2xl">
                             <p className="text-gray-300 leading-relaxed text-lg mb-4">
@@ -33,6 +33,16 @@ const AboutPage = () => {
                                 We believe that everyone should be able to visualize how data moves and transforms.
                                 By combining generative AI with dynamic animations, we turn standard code problems into
                                 interactive learning experiences instantly.
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Vision Section */}
+                    <div className="mb-20">
+                        <h2 className="text-3xl font-bold text-white mb-6">Our Vision</h2>
+                        <div className="bg-surface border border-white/10 p-8 rounded-2xl">
+                            <p className="text-gray-300 leading-relaxed text-lg">
+                                Our vision is to become a universal platform where anyone can truly understand algorithms through clear, interactive, and intelligent visualizations. We aim to transform the way algorithms are learned by replacing rote memorization with deep visual intuition, empowering students and developers to think logically, solve problems confidently, and grow as skilled problem solvers.
                             </p>
                         </div>
                     </div>
