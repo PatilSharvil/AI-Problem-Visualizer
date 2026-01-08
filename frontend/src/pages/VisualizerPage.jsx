@@ -7,8 +7,11 @@ import clsx from 'clsx';
 import { Loader2, ArrowLeft } from 'lucide-react';
 
 import VishvaroopLogo from '../components/VishvaroopLogo';
+import BackendLoader from '../components/BackendLoader';
+import useBackendReady from '../hooks/useBackendReady';
 
 function VisualizerPage() {
+    const { waitForBackend, isChecking } = useBackendReady();
     const [frames, setFrames] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -39,7 +42,7 @@ function VisualizerPage() {
     }, [autoFill, location.hash]);
 
     // Use mock data for now if API fails or for dev
-    const handleProblemSubmit = async (problemStatement) => {
+    const generateVisualizations = async (problemStatement) => {
         setIsLoading(true);
         setError(null);
         setHasStarted(true);
@@ -89,6 +92,10 @@ function VisualizerPage() {
         }
     };
 
+    const handleProblemSubmit = (problemStatement) => {
+        waitForBackend(() => generateVisualizations(problemStatement));
+    };
+
     return (
         <div className="min-h-screen bg-background text-text-primary p-4 md:p-8 flex flex-col items-center relative overflow-hidden">
             {/* Background Atmosphere */}
@@ -97,6 +104,8 @@ function VisualizerPage() {
                 <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-cyan-900/10 rounded-full blur-[100px] animate-pulse-slow delay-1000" />
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-900/5 rounded-full blur-[150px]" />
             </div>
+
+            {isChecking && <BackendLoader />}
 
             <header className="w-full max-w-7xl mb-12 flex items-center justify-between relative z-10">
                 <div className="flex items-center gap-4">
