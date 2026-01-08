@@ -46,6 +46,20 @@ function runExecutors(llmOutput, originalProblem = '') {
         return slidingWindowResult;
     }
 
+    // VALID PARENTHESES - catches bracket/parenthesis validation problems
+    const validParenthesesResult = deterministicValidParentheses(originalProblem);
+    if (validParenthesesResult) {
+        console.log('[Executor] Using DETERMINISTIC valid parentheses - bypassing LLM output');
+        return validParenthesesResult;
+    }
+
+    // GENERIC SORT - catches "sort the array", "sort this", etc. - defaults to bubble sort
+    const genericSortResult = deterministicGenericSort(originalProblem);
+    if (genericSortResult) {
+        console.log('[Executor] Using DETERMINISTIC generic sort (bubble) - bypassing LLM output');
+        return genericSortResult;
+    }
+
     const bubbleSortResult = deterministicBubbleSort(originalProblem);
     if (bubbleSortResult) {
         console.log('[Executor] Using DETERMINISTIC bubble sort - bypassing LLM output');
@@ -390,6 +404,221 @@ function deterministicSlidingWindow(query) {
         structures: [{ id: "arr", type: "array", label: "Array", data: arr }],
         steps: steps
     };
+}
+
+/**
+ * Deterministic Valid Parentheses - handles bracket validation using stack
+ * Catches: "valid parentheses", "balanced brackets", "check brackets", etc.
+ */
+function deterministicValidParentheses(query) {
+    if (!query) return null;
+    const queryLower = query.toLowerCase();
+
+    // Check if it's a parentheses/bracket validation problem
+    const isParenthesesProblem =
+        queryLower.includes('valid parenthes') ||
+        queryLower.includes('balanced') ||
+        queryLower.includes('bracket') ||
+        queryLower.includes('parenthes') ||
+        (queryLower.includes('check') && (queryLower.includes('(') || queryLower.includes('['))) ||
+        (queryLower.includes('stack') && (queryLower.includes('(') || queryLower.includes('{')));
+
+    if (!isParenthesesProblem) return null;
+
+    // Extract the bracket string from the query
+    // Look for quoted strings or bracket sequences
+    let bracketString = '';
+
+    // Try to find quoted string first
+    const quotedMatch = query.match(/['"]([\[\](){}<>]+)['"]/);
+    if (quotedMatch) {
+        bracketString = quotedMatch[1];
+    } else {
+        // Look for bracket sequence directly
+        const bracketMatch = query.match(/([\[\](){}<>]+)/);
+        if (bracketMatch) {
+            bracketString = bracketMatch[1];
+        }
+    }
+
+    // If no brackets found, use a default example
+    if (!bracketString || bracketString.length === 0) {
+        bracketString = '()[]{}';
+    }
+
+    console.log(`[Valid Parentheses Executor] Checking: "${bracketString}"`);
+
+    const steps = [];
+    const stack = [];
+    const matchingBrackets = { ')': '(', ']': '[', '}': '{', '>': '<' };
+    const openingBrackets = new Set(['(', '[', '{', '<']);
+    let isValid = true;
+    let errorIndex = -1;
+
+    // Initial step
+    steps.push({
+        title: "Start",
+        description: `Input: "${bracketString}"`,
+        stack: [],
+        input: bracketString,
+        currentIndex: -1
+    });
+
+    for (let i = 0; i < bracketString.length; i++) {
+        const char = bracketString[i];
+
+        if (openingBrackets.has(char)) {
+            // Push opening bracket
+            stack.push(char);
+            steps.push({
+                title: `Push '${char}'`,
+                description: `Opening bracket at index ${i}. Push to stack.`,
+                stack: [...stack],
+                input: bracketString,
+                currentIndex: i,
+                action: 'push'
+            });
+        } else if (matchingBrackets[char]) {
+            // Check for matching opening bracket
+            if (stack.length === 0) {
+                isValid = false;
+                errorIndex = i;
+                steps.push({
+                    title: `Error: '${char}'`,
+                    description: `Closing bracket at index ${i} but stack is empty!`,
+                    stack: [...stack],
+                    input: bracketString,
+                    currentIndex: i,
+                    action: 'error'
+                });
+                break;
+            }
+
+            const top = stack[stack.length - 1];
+            if (top === matchingBrackets[char]) {
+                stack.pop();
+                steps.push({
+                    title: `Match: '${top}' & '${char}'`,
+                    description: `Closing '${char}' matches opening '${top}'. Pop from stack.`,
+                    stack: [...stack],
+                    input: bracketString,
+                    currentIndex: i,
+                    action: 'pop'
+                });
+            } else {
+                isValid = false;
+                errorIndex = i;
+                steps.push({
+                    title: `Mismatch!`,
+                    description: `Expected '${matchingBrackets[char]}' but found '${top}' at top of stack.`,
+                    stack: [...stack],
+                    input: bracketString,
+                    currentIndex: i,
+                    action: 'error'
+                });
+                break;
+            }
+        }
+    }
+
+    // Final check
+    if (isValid && stack.length > 0) {
+        isValid = false;
+        steps.push({
+            title: "Unmatched Brackets",
+            description: `Stack not empty. Remaining: [${stack.join(', ')}]`,
+            stack: [...stack],
+            input: bracketString,
+            currentIndex: bracketString.length,
+            action: 'error'
+        });
+    }
+
+    // Result step
+    steps.push({
+        title: isValid ? "Valid! ✓" : "Invalid! ✗",
+        description: isValid
+            ? "All brackets properly matched and closed."
+            : `Brackets are not balanced.`,
+        stack: [...stack],
+        input: bracketString,
+        result: isValid
+    });
+
+    return {
+        structures: [
+            { id: "stack", type: "stack", label: "Stack", data: [] },
+            { id: "input", type: "array", label: "Input", data: bracketString.split('') }
+        ],
+        steps
+    };
+}
+
+/**
+ * Deterministic Generic Sort - catches "sort the array", "sort this", etc.
+ * Defaults to bubble sort when no specific algorithm is mentioned
+ */
+function deterministicGenericSort(query) {
+    if (!query) return null;
+    const queryLower = query.toLowerCase();
+
+    // Check if it's a generic sort request (has "sort" but no specific algorithm)
+    const hasSort = queryLower.includes('sort');
+    const hasSpecificSort = queryLower.includes('bubble') ||
+        queryLower.includes('selection') ||
+        queryLower.includes('insertion') ||
+        queryLower.includes('quick') ||
+        queryLower.includes('merge') ||
+        queryLower.includes('heap');
+
+    // Only handle generic sort requests
+    if (!hasSort || hasSpecificSort) return null;
+
+    const arrayMatch = query.match(/\[([0-9,\s\-]+)\]/);
+    if (!arrayMatch) return null;
+
+    let arr = arrayMatch[1].split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+    if (arr.length === 0) return null;
+
+    console.log(`[Generic Sort Executor] Using Bubble Sort for: [${arr.join(',')}]`);
+
+    const steps = [];
+    const original = [...arr];
+
+    steps.push({
+        title: "Initial Array",
+        description: `Array to sort: [${arr.join(', ')}]`,
+        array: [...arr]
+    });
+
+    for (let i = 0; i < arr.length - 1; i++) {
+        for (let j = 0; j < arr.length - 1 - i; j++) {
+            if (arr[j] > arr[j + 1]) {
+                steps.push({
+                    title: `Compare [${j}] & [${j + 1}]`,
+                    description: `${arr[j]} > ${arr[j + 1]}, swap`,
+                    array: [...arr],
+                    highlight: [j, j + 1]
+                });
+                [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+                steps.push({
+                    title: "Swapped",
+                    description: `Now: [${arr.join(', ')}]`,
+                    array: [...arr],
+                    highlight: [j, j + 1]
+                });
+            }
+        }
+    }
+
+    steps.push({
+        title: "Sorted!",
+        description: `Final: [${arr.join(', ')}]`,
+        array: [...arr],
+        result: [...arr]
+    });
+
+    return { structures: [{ id: "arr", type: "array", label: "Array", data: original }], steps };
 }
 
 /**

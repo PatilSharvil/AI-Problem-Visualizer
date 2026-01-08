@@ -132,26 +132,3 @@
     font-size: 11px;
     color: #999999;
 }
-
-.variables-panel {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    padding: 10px 15px;
-    margin: 15px 0;
-    background: #f5f5f5;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
-
-.variable-item {
-    padding: 4px 8px;
-    background: white;
-    border: 1px solid #ccc;
-    border-radius: 3px;
-    font-size: 13px;
-}
-
-.variable-item strong {
-    color: #0066cc;
-}

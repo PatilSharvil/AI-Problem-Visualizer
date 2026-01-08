@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background text-text-primary antialiased selection:bg-primary/20 selection:text-blue-200;
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-surface;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-secondary rounded hover:bg-opacity-80;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-bold text-text-primary;
+  }
+}
+
+.glass-panel {
+  @apply bg-surface bg-opacity-70 backdrop-blur-md border border-white/10 shadow-xl rounded-xl;
+}
+
+.glass-input {
+  @apply bg-background bg-opacity-50 border border-secondary/30 rounded-lg px-4 py-2 text-text-primary focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all;
+}
+
+.glass-button {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 active:scale-95;
+}
+
+.btn-primary {
+  @apply bg-primary hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20;
+}
+
+.btn-secondary {
+  @apply bg-surface hover:bg-slate-700 text-text-secondary border border-secondary/30;
+}
