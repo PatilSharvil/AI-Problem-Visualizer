@@ -1,149 +1,136 @@
-# AI Algorithm Visualizer
+# VishvaRoop 
+### Universal AI-Powered Algorithm Visualizer
 
-A universal algorithm visualization system that can visualize any algorithm pattern using AI-powered step generation.
+> **Visualize any algorithm problem instantly using the power of Generative AI. 🪄✨**
 
-## 🎯 Features
+VishvaRoop is a next-generation education tool that transforms static algorithm problems into dynamic, step-by-step visualizations. By combining Large Language Models (Gemini/Ollama) with a robust "Entity-Action" architecture, it understands complex problem statements and renders semantic animations. 🎬
 
-- **14 Algorithm Patterns** - Sliding Window, Two Pointers, Binary Search, Stack, Queue, Hashmap, and more
-- **AI-Powered** - Uses Ollama LLM to generate step-by-step visualizations
-- **Multi-Phase Support** - Complex problems using multiple patterns
-- **Interactive UI** - Play/Pause, Next/Previous, Keyboard controls
+---
 
-## 📊 Supported Patterns
+## 🚀 Key Features
 
-| # | Pattern | Status | Visual Component |
-|---|---------|--------|------------------|
-| 1 | Sliding Window | ✅ Ready | ArrayRow + Window |
-| 2 | Two Pointers | ✅ Ready | ArrayRow + L/R |
-| 3 | Fast/Slow Pointers | ✅ Ready | ArrayRow + Slow/Fast |
-| 4 | Binary Search | ✅ Ready | ArrayRow + L/M/R |
-| 5 | Cyclic Sort | ✅ Ready | ArrayRow + Swap |
-| 6 | Linked List Reversal | ✅ Ready | ArrayRow |
-| 7 | Tree BFS | ⏳ Pending | Needs TreeDisplay |
-| 8 | Tree DFS | ⏳ Pending | Needs TreeDisplay |
-| 9 | Two Heaps | ✅ Ready | HeapDisplay |
-| 10 | Subsets | ✅ Ready | SubsetsDisplay |
-| 11 | Top K Elements | ✅ Ready | HeapDisplay |
-| 12 | K-way Merge | ✅ Ready | ArrayRow + Heap |
-| 13 | Merge Intervals | ⏳ Pending | Needs IntervalDisplay |
-| 14 | Topological Sort | ⏳ Pending | Needs GraphDisplay |
-| 15 | Hashmap | ✅ Ready | HashMapDisplay |
-| 16 | Stack/Queue | ✅ Ready | StackQueueDisplay |
+- 🌐 **Universal Visualization**: Currently supports 4 data structures: **Arrays**, **Stacks**, **Queues**, and **BST**. We are actively working on adding more!
+- 🧠 **AI-Driven Core**: Leverages **Google Gemini** ✨ and **Ollama** 🦙 to parse problems and generate deterministic execution steps.
+- 🏗️ **Entity-Action Architecture**: A novel approach that normalizes LLM output into verifiable actions (Create, Select, Move, Highlight) for consistent rendering.
+- 🛡️ **Adaptive Fallbacks**: Built-in deterministic executors ensure visualization continuity even if the AI output is imperfect.
+- ⏯️ **Interactive Playback**: Full control with **Play/Pause**, **Step Forward/Back**.
+- 📚 **Rich Data Structures**: Visualizes **Arrays**, **Binary Trees**, **Stacks**, **Queues** (MVP Phase).
+- 🎨 **Modern UI**: A sleek, dark-themed experience built with **React** and **Tailwind CSS**.
 
-## 🚀 Quick Start
+## 🛠️ Tech Stack
 
-### Prerequisites
-- Node.js 18+
-- Ollama running locally with a model (e.g., `qwen2.5-coder:7b-instruct`)
+### 🖥️ Frontend
+- **Framework**: [React](https://react.dev/) ⚛️ + [Vite](https://vitejs.dev/) ⚡
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/) 💨
+- **Animations**: [Anime.js](https://animejs.com/) 🎥
+- **Icons**: [Lucide React](https://lucide.dev/) 🖌️
+- **State/Networking**: Axios 📡
 
-### Installation
+### ⚙️ Backend
+- **Runtime**: [Node.js](https://nodejs.org/) 🟢 & [Express](https://expressjs.com/) 🚂
+- **AI Integration**: 
+    - **Google Gemini** (Cloud) ✨
+    - **Ollama** (Local LLM) 🦙
+- **Architecture**: Service-Controller pattern with Custom Normalizers 📐
 
-```bash
-# Clone the repository
-git clone <repo-url>
-cd "AI Algorithm visualizer"
+## 🔄 Architecture & Flow
 
-# Install backend dependencies
-cd backend
-npm install
+1. ⌨️ **Input**: User inputs a problem statement (e.g., *"Find the maximum subarray sum"*).
+2. 🔍 **Analysis**: The **LLM Service** (Gemini/Ollama) analyzes the problem type and generates a logical plan.
+3. 📏 **Normalization**: The **Universal Normalizer** converts raw AI output into a strictly structured JSON of Entities and Actions.
+4. ⚙️ **Execution**: The **Executor Engine** runs the logic (with deterministic fallbacks).
+5. 🎨 **Rendering**: The Frontend **VisualCanvas** interprets the frames and manages state transitions using Anime.js.
 
-# Install frontend dependencies
-cd ../frontend
-npm install
+## 🏃‍♂️ How to Run Locally
+
+### 📋 Prerequisites
+- **Node.js** (v18 or higher) 🟢
+- **npm** or **yarn** 📦
+- (Optional) [Ollama](https://ollama.ai/) 🦙 installed locally for offline AI support.
+
+### 📥 Installation
+
+1. **Clone the repository** 👯
+   ```bash
+   git clone https://github.com/PatilSharvil/AI-Problem-Visualizer.git
+   cd AI-Problem-Visualizer
+   ```
+
+2. **Install Backend Dependencies** 🛠️
+   ```bash
+   cd backend
+   npm install
+   ```
+
+3. **Install Frontend Dependencies** 💅
+   ```bash
+   cd ../frontend
+   npm install
+   ```
+
+### ⚙️ Configuration
+
+Create a `.env` file in the `backend/` directory:
+
+```env
+# Server Port
+PORT=5000
+
+# AI Provider Configuration (Choose 'gemini' or 'ollama')
+LLM_PROVIDER=gemini
+
+# If using Gemini ✨
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# If using Ollama 🦙
+OLLAMA_URL=http://localhost:11434
+OLLAMA_MODEL=qwen2.5-coder:7b-instruct
 ```
 
-### Running
+### 🏁 Start the Application
 
+**Backend:** 🔌
 ```bash
-# Terminal 1: Start backend
 cd backend
-node server.js
+npm run dev
+# Server running on http://localhost:5000
+```
 
-# Terminal 2: Start frontend
+**Frontend:** 🖥️
+```bash
 cd frontend
 npm run dev
+# App running on http://localhost:5173
 ```
 
-Open http://localhost:5173
-
-## 🎮 Usage
-
-1. Enter an algorithm problem in the input box
-2. Click "Visualize"
-3. Use controls to navigate through steps:
-   - **←** Previous step
-   - **→** Next step
-   - **Space** Play/Pause
-
-### Example Problems
+## 📂 Folder Structure
 
 ```
-# Sliding Window
-Given array nums = [2,1,5,1,3,2] and k=3, find the maximum sum of any contiguous subarray of size k
-
-# Two Pointers
-Given array heights = [1,8,6,2,5,4,8,3,7], find the maximum area of water container
-
-# Binary Search
-Given sorted array [1,3,5,7,9,11,13], find the index of target value 7
-
-# Stack
-Given string '([]){}'', determine if the parentheses are valid
-
-# Hashmap
-Given nums = [2,7,11,15] and target 9, find two numbers that add up to target
-```
-
-## 📁 Project Structure
-
-```
-AI Algorithm visualizer/
-├── backend/
-│   ├── server.js
-│   └── src/
-│       ├── controllers/
-│       │   └── algorithmController.js
-│       ├── services/
-│       │   ├── ollamaAdapter.js
-│       │   ├── llmService.js
-│       │   └── visualizationNormalizer.js
-│       └── schemas/
-│           └── llmOutputSchema.js
-├── frontend/
+VishvaRoop/
+├── backend/ ⚙️
 │   ├── src/
-│   │   ├── App.jsx
-│   │   └── components/
-│   │       ├── ArrayRow.jsx
-│   │       ├── FrameVisualizer.jsx
-│   │       ├── HashMapDisplay.jsx
-│   │       ├── HeapDisplay.jsx
-│   │       ├── ProblemInput.jsx
-│   │       ├── StackQueueDisplay.jsx
-│   │       ├── SubsetsDisplay.jsx
-│   │       └── VariablePanel.jsx
+│   │   ├── controllers/      # Request handlers 🕹️
+│   │   ├── services/         # LLM Adapter, Executors, Normalizer 🧠
+│   │   ├── schemas/          # Validation schemas 🛡️
+│   │   └── routes/           # API Endpoints 🛣️
+│   └── server.js             # Entry point 🚪
+│
+├── frontend/ 🎨
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── entities/     # Visualizers (Array, Tree, Graph...) 📊
+│   │   │   └── ...
+│   │   ├── pages/            # Landing, VisualizerPage 📄
+│   │   └── App.jsx
 │   └── index.html
 └── README.md
 ```
 
-## ⚙️ Configuration
-
-Environment variables (create `.env` in backend/):
-
-```
-LLM_PROVIDER=ollama
-OLLAMA_URL=http://localhost:11434
-OLLAMA_MODEL=qwen2.5-coder:7b-instruct
-PORT=5000
-```
-
-## 🔮 Roadmap
-
-- [ ] TreeDisplay for BFS/DFS visualization
-- [ ] GraphDisplay for Topological Sort
-- [ ] IntervalDisplay for Merge Intervals
-- [ ] LinkedListDisplay with arrow animations
-- [ ] Export visualization as video/GIF
+## 🔮 Future Enhancements
+- 📈 Expanded Graph algorithms (Dijkstra, Bellman-Ford, etc).
+- 🏗️ Expanded Data structures (Linked List, Graph, Matrix, etc).
+- 🧩 Expanded Algorithms (Sorting, Searching, Graph Traversal, etc).
+- 🤖 Betterment in deterministic engine.
 
 ## 📝 License
-
-MIT
+MIT License. 📜
