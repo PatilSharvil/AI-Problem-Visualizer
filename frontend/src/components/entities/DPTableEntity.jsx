@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './DPTableEntity.css';
 
-function DPTableEntity({ id, data, meta, actions }) {
+function DPTableEntity({ id, data, meta, actions, className }) {
     const { label, currentCell, highlight } = meta || {};
     const [newCell, setNewCell] = useState(null);
     const prevDataRef = useRef(null);
@@ -24,7 +24,7 @@ function DPTableEntity({ id, data, meta, actions }) {
 
     if (table.length === 0) {
         return (
-            <div className="dp-table-entity">
+            <div className={`dp-table-entity ${className || ''}`}>
                 <div className="entity-header">
                     <span className="entity-icon">📈</span>
                     <span className="entity-label">{label || 'DP Table'}</span>
@@ -53,7 +53,7 @@ function DPTableEntity({ id, data, meta, actions }) {
     };
 
     return (
-        <div className="dp-table-entity">
+        <div className={`dp-table-entity ${className || ''}`}>
             <div className="entity-header">
                 <span className="entity-icon">📈</span>
                 <span className="entity-label">{label || 'DP Table'}</span>

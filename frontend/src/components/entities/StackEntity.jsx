@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './StackEntity.css';
 
-function StackEntity({ id, data, meta, actions }) {
+function StackEntity({ id, data, meta, actions, className }) {
     const { label } = meta || {};
     const [animState, setAnimState] = useState({ pushing: null, popping: null });
     const prevDataRef = useRef(null);
@@ -30,7 +30,7 @@ function StackEntity({ id, data, meta, actions }) {
     const displayData = data || [];
 
     return (
-        <div className="stack-entity">
+        <div className={`stack-entity ${className || ''}`}>
             <div className="entity-header">
                 <span className="entity-icon">📚</span>
                 <span className="entity-label">{label || 'Stack'}</span>

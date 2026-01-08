@@ -1,9 +1,16 @@
 .tree-entity {
   margin: 15px 0;
   padding: 20px;
-  background: #fff;
-  border: 2px solid #333;
+  background: #121826;
+  border: 2px solid #2d3748;
   border-radius: 8px;
+  color: #f8fafc;
+}
+
+.tree-entity.array-entity-dark {
+  background: transparent;
+  border: none;
+  padding: 0;
 }
 
 .entity-header {
@@ -12,7 +19,7 @@
   gap: 10px;
   margin-bottom: 15px;
   padding-bottom: 10px;
-  border-bottom: 2px solid #eee;
+  border-bottom: 2px solid #2d3748;
 }
 
 .entity-icon {
@@ -22,17 +29,18 @@
 .entity-label {
   font-size: 13px;
   font-weight: bold;
-  color: #333;
+  color: #3b82f6;
   text-transform: uppercase;
 }
 
 .entity-size {
   margin-left: auto;
   font-size: 12px;
-  color: #666;
-  background: #f3f4f6;
+  color: #94a3b8;
+  background: #1e293b;
   padding: 4px 10px;
   border-radius: 4px;
+  border: 1px solid #334155;
 }
 
 /* Action Banners */
@@ -43,27 +51,27 @@
   border-radius: 4px;
   font-weight: 500;
   font-size: 13px;
-  background: #fff3cd;
-  border: 1px solid #ffc107;
-  color: #856404;
+  background: #f59e0b/20;
+  border: 1px solid #f59e0b/30;
+  color: #fbbf24;
 }
 
 .action-banner.found {
-  background: #d4edda;
-  border-color: #28a745;
-  color: #155724;
+  background: #10b981/20;
+  border: 1px solid #10b981/30;
+  color: #34d399;
 }
 
 .action-banner.insert {
-  background: #d4edda;
-  border: 1px solid #28a745;
-  color: #155724;
+  background: #10b981/20;
+  border: 1px solid #10b981/30;
+  color: #34d399;
 }
 
 .action-banner.remove {
-  background: #f8d7da;
-  border: 1px solid #dc3545;
-  color: #721c24;
+  background: #ef4444/20;
+  border: 1px solid #ef4444/30;
+  color: #f87171;
 }
 
 /* Path Display */
@@ -74,28 +82,30 @@
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
-  background: #e8f4fd;
-  border: 1px solid #2196f3;
-  color: #1565c0;
+  background: #3b82f6/20;
+  border: 1px solid #3b82f6/30;
+  color: #93c5fd;
   font-family: monospace;
 }
 
 .entity-empty {
   padding: 40px;
   text-align: center;
-  color: #999;
+  color: #94a3b8;
   font-style: italic;
-  background: #f8f9fa;
+  background: #1e293b;
   border-radius: 6px;
+  border: 1px solid #334155;
 }
 
 .tree-container {
   display: flex;
   justify-content: center;
   padding: 20px;
-  background: #fafafa;
+  background: #1e293b;
   border-radius: 6px;
   overflow-x: auto;
+  border: 1px solid #334155;
 }
 
 .tree-svg {
@@ -106,226 +116,139 @@
 .level-label {
   font-size: 11px;
   font-weight: bold;
-  fill: #999;
+  fill: #94a3b8;
 }
 
 .level-line {
-  stroke: #eee;
+  stroke: #475569;
   stroke-width: 1;
   stroke-dasharray: 4 4;
 }
 
 /* Edges */
 .tree-edge {
-  stroke: #ccc;
+  stroke: #64748b;
   stroke-width: 2;
   fill: none;
-  transition: stroke 0.4s ease, stroke-width 0.4s ease;
+  transition: stroke 0.3s ease;
 }
 
 .tree-edge.highlighted {
-  stroke: #ff9800;
+  stroke: #f59e0b;
   stroke-width: 3;
-  animation: edgePulse 0.8s ease-in-out;
+  transition: stroke 0.3s ease;
 }
 
 /* Nodes - Base Style */
 .tree-node {
-  fill: #e9ecef;
-  stroke: #495057;
+  fill: #334155;
+  stroke: #64748b;
   stroke-width: 2;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s ease;
   transform-origin: center;
 }
 
 .tree-node.root {
-  fill: #dee2e6;
-  stroke: #343a40;
+  fill: #475569;
+  stroke: #94a3b8;
   stroke-width: 3;
 }
 
-/* Current Visiting Node - Orange with pulse animation */
+/* Current Visiting Node - Clean highlight without animation */
 .tree-node.visiting {
-  fill: #ff9800;
-  stroke: #e65100;
+  fill: #f59e0b/40;
+  stroke: #f59e0b;
   stroke-width: 3;
-  animation: nodePulse 0.8s ease-in-out;
+  transition: all 0.3s ease;
 }
 
-/* On the Search Path - Light Orange */
+/* On the Search Path - Clean highlight without animation */
 .tree-node.in-path {
-  fill: #ffcc80;
-  stroke: #ff9800;
-  stroke-width: 2;
+  fill: #f59e0b/30;
+  stroke: #f59e0b;
+  stroke-width: 2.5;
+  transition: all 0.3s ease;
 }
 
-/* Already Visited - Light Blue */
+/* Already Visited - Subtle highlight without animation */
 .tree-node.visited {
-  fill: #bbdefb;
-  stroke: #2196f3;
-  stroke-width: 2;
+  fill: #3b82f6/30;
+  stroke: #3b82f6;
+  stroke-width: 2.5;
+  transition: all 0.3s ease;
 }
 
-/* Found Node - Green with glow animation */
+/* Found Node - Clean highlight without animation */
 .tree-node.found {
-  fill: #4caf50;
-  stroke: #2e7d32;
+  fill: #10b981/40;
+  stroke: #10b981;
   stroke-width: 3;
-  animation: nodeGlow 1s ease-in-out infinite;
+  transition: all 0.3s ease;
 }
 
-/* Inserting - Green with pop-in animation */
+/* Inserting - Gentle highlight without animation */
 .tree-node.inserting {
-  fill: #4caf50;
-  stroke: #2e7d32;
+  fill: #10b981/40;
+  stroke: #10b981;
   stroke-width: 3;
-  animation: nodePopIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.3s ease;
 }
 
-/* Removing - Red with fade-out animation */
+/* Removing - Subtle highlight without animation */
 .tree-node.removing {
-  fill: #f44336;
-  stroke: #c62828;
+  fill: #ef4444/40;
+  stroke: #ef4444;
   stroke-width: 3;
-  animation: nodeFadeOut 0.5s ease-out forwards;
+  transition: all 0.3s ease;
 }
 
 /* Part of highlighted subtree */
 .tree-node.in-subtree {
-  fill: #e1bee7;
-  stroke: #9c27b0;
+  fill: #8b5cf6/30;
+  stroke: #8b5cf6;
+  stroke-width: 2.5;
+  transition: all 0.3s ease;
 }
 
 /* Node Text */
 .tree-node-text {
   font-size: 14px;
   font-weight: bold;
-  fill: #212529;
+  fill: #f8fafc;
   text-anchor: middle;
   pointer-events: none;
   user-select: none;
-  transition: fill 0.4s ease;
+  transition: fill 0.3s ease;
 }
 
 .tree-node-text.highlighted {
-  fill: white;
+  fill: #f8fafc;
 }
 
 /* Node Group */
 .tree-node-group {
-  transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
-.tree-node-group.new-node {
-  animation: nodeSlideIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+/* ========== CLEAN HIGHLIGHT ANIMATIONS ONLY (No expanding/circle contrast) ========== */
+
+/* Clean highlight for visiting nodes - no scaling */
+.tree-node.visiting {
+  /* No animation - just clean highlight */
 }
 
-/* ========== KEYFRAME ANIMATIONS ========== */
-
-/* Edge pulse animation */
-@keyframes edgePulse {
-  0% {
-    stroke-width: 2;
-    stroke: #ccc;
-  }
-
-  50% {
-    stroke-width: 4;
-    stroke: #ff9800;
-  }
-
-  100% {
-    stroke-width: 3;
-    stroke: #ff9800;
-  }
-}
-
-/* Node pulse for visiting */
-@keyframes nodePulse {
-  0% {
-    transform: scale(1);
-  }
-
-  50% {
-    transform: scale(1.15);
-  }
-
-  100% {
-    transform: scale(1);
-  }
-}
-
-/* Pop-in animation for new nodes */
-@keyframes nodePopIn {
-  0% {
-    transform: scale(0);
-    opacity: 0;
-  }
-
-  50% {
-    transform: scale(1.2);
-    opacity: 1;
-  }
-
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-/* Fade-out animation for removed nodes */
-@keyframes nodeFadeOut {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-
-  50% {
-    transform: scale(1.1);
-    opacity: 0.7;
-  }
-
-  100% {
-    transform: scale(0);
-    opacity: 0;
-  }
-}
-
-/* Glow animation for found nodes */
-@keyframes nodeGlow {
-  0% {
-    filter: drop-shadow(0 0 0px #4caf50);
-  }
-
-  50% {
-    filter: drop-shadow(0 0 10px #4caf50) drop-shadow(0 0 20px #4caf50);
-  }
-
-  100% {
-    filter: drop-shadow(0 0 0px #4caf50);
-  }
-}
-
-/* Slide-in animation for new nodes */
-@keyframes nodeSlideIn {
-  0% {
-    transform: translateY(-30px) scale(0);
-    opacity: 0;
-  }
-
-  100% {
-    transform: translateY(0) scale(1);
-    opacity: 1;
-  }
+/* Clean highlight for found nodes - no scaling */
+.tree-node.found {
+  /* No animation - just clean highlight */
 }
 
 /* Highlight ripple for comparison */
 @keyframes nodeRipple {
   0% {
-    box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.6);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
   }
 
   100% {
-    box-shadow: 0 0 0 15px rgba(255, 152, 0, 0);
+    box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
   }
 }

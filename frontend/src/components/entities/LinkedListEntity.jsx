@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './LinkedListEntity.css';
 
-function LinkedListEntity({ id, data, meta, actions }) {
+function LinkedListEntity({ id, data, meta, actions, className }) {
     const { label, pointers } = meta || {};
     const [animState, setAnimState] = useState({ swap: null, removing: [], inserting: null });
     const prevDataRef = useRef(null);
@@ -42,7 +42,7 @@ function LinkedListEntity({ id, data, meta, actions }) {
 
     if (!displayData || displayData.length === 0) {
         return (
-            <div className="linked-list-entity">
+            <div className={`linked-list-entity ${className || ''}`}>
                 <div className="entity-header">
                     <span className="entity-icon">🔗</span>
                     <span className="entity-label">{label || 'Linked List'}</span>
@@ -71,7 +71,7 @@ function LinkedListEntity({ id, data, meta, actions }) {
     };
 
     return (
-        <div className="linked-list-entity">
+        <div className={`linked-list-entity ${className || ''}`}>
             <div className="entity-header">
                 <span className="entity-icon">🔗</span>
                 <span className="entity-label">{label || 'Linked List'}</span>
@@ -98,9 +98,9 @@ function LinkedListEntity({ id, data, meta, actions }) {
                     return (
                         <React.Fragment key={`${idx}-${val}`}>
                             <div
-                                className={`ll-node-wrapper 
-                  ${isSwapping(idx) ? 'swapping' : ''} 
-                  ${isRemoving(idx) ? 'removing' : ''} 
+                                className={`ll-node-wrapper
+                  ${isSwapping(idx) ? 'swapping' : ''}
+                  ${isRemoving(idx) ? 'removing' : ''}
                   ${isInserting(idx) ? 'inserting' : ''}`}
                                 style={{
                                     transform: getSwapTransform(idx),

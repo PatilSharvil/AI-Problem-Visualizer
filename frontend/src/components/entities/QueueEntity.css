@@ -1,9 +1,16 @@
 .queue-entity {
     margin: 15px 0;
     padding: 20px;
-    background: #fff;
-    border: 2px solid #333;
+    background: #121826;
+    border: 2px solid #2d3748;
     border-radius: 8px;
+    color: #f8fafc;
+}
+
+.queue-entity.array-entity-dark {
+    background: transparent;
+    border: none;
+    padding: 0;
 }
 
 .entity-header {
@@ -12,7 +19,7 @@
     gap: 10px;
     margin-bottom: 15px;
     padding-bottom: 10px;
-    border-bottom: 2px solid #eee;
+    border-bottom: 2px solid #2d3748;
 }
 
 .entity-icon {
@@ -22,17 +29,18 @@
 .entity-label {
     font-size: 13px;
     font-weight: bold;
-    color: #333;
+    color: #3b82f6;
     text-transform: uppercase;
 }
 
 .entity-size {
     margin-left: auto;
     font-size: 12px;
-    color: #666;
-    background: #f3f4f6;
+    color: #94a3b8;
+    background: #1e293b;
     padding: 4px 10px;
     border-radius: 4px;
+    border: 1px solid #334155;
 }
 
 /* Operation Banner */
@@ -43,27 +51,27 @@
     border-radius: 4px;
     font-weight: 500;
     font-size: 13px;
-    background: #fff3cd;
-    border: 1px solid #ffc107;
-    color: #856404;
+    background: #f59e0b/20;
+    border: 1px solid #f59e0b/30;
+    color: #fbbf24;
 }
 
 .queue-operation-banner.enqueue {
-    background: #d4edda;
-    border-color: #28a745;
-    color: #155724;
+    background: #10b981/20;
+    border: 1px solid #10b981/30;
+    color: #34d399;
 }
 
 .queue-operation-banner.dequeue {
-    background: #f8d7da;
-    border-color: #dc3545;
-    color: #721c24;
+    background: #ef4444/20;
+    border: 1px solid #ef4444/30;
+    color: #f87171;
 }
 
 .queue-operation-banner.process {
-    background: #e8f4fd;
-    border-color: #2196f3;
-    color: #1565c0;
+    background: #3b82f6/20;
+    border: 1px solid #3b82f6/30;
+    color: #93c5fd;
 }
 
 /* Queue Visual Layout */
@@ -72,9 +80,10 @@
     align-items: center;
     gap: 15px;
     padding: 20px;
-    background: linear-gradient(90deg, #f0fdf4 0%, #f8f9fa 50%, #fef3c7 100%);
+    background: #1e293b;
     border-radius: 8px;
     overflow-x: auto;
+    border: 1px solid #334155;
 }
 
 /* Arrows */
@@ -90,16 +99,16 @@
 .arrow-label {
     font-size: 10px;
     font-weight: bold;
-    color: #666;
+    color: #94a3b8;
     text-transform: uppercase;
 }
 
 .dequeue-arrow .arrow-label {
-    color: #10b981;
+    color: #34d399;
 }
 
 .enqueue-arrow .arrow-label {
-    color: #f59e0b;
+    color: #fbbf24;
 }
 
 .arrow-icon {
@@ -108,11 +117,11 @@
 }
 
 .dequeue-arrow .arrow-icon {
-    color: #10b981;
+    color: #34d399;
 }
 
 .enqueue-arrow .arrow-icon {
-    color: #f59e0b;
+    color: #fbbf24;
 }
 
 /* Queue Container */
@@ -125,9 +134,9 @@
     align-items: center;
     justify-content: flex-start;
     padding: 10px;
-    background: rgba(255, 255, 255, 0.8);
+    background: #1e293b;
     border-radius: 8px;
-    border: 2px dashed #ddd;
+    border: 2px dashed #475569;
 }
 
 /* Queue Items */
@@ -137,14 +146,14 @@
     align-items: center;
     justify-content: center;
     padding: 15px 25px;
-    background: #6366f1;
+    background: #4f46e5;
     color: white;
     font-weight: bold;
     text-align: center;
     border-radius: 10px;
     min-width: 60px;
     position: relative;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
     transition: all 0.3s ease;
 }
 
@@ -164,39 +173,43 @@
 }
 
 .front-label {
-    background: #10b981;
-    color: white;
+    background: #10b981/30;
+    color: #34d399;
     left: 50%;
     transform: translateX(-50%);
+    border: 1px solid #10b981/50;
 }
 
 .rear-label {
-    background: #f59e0b;
-    color: white;
+    background: #f59e0b/30;
+    color: #fbbf24;
     left: 50%;
     transform: translateX(-50%);
+    border: 1px solid #f59e0b/50;
 }
 
 /* Front Item - Green border */
 .queue-item.front {
-    background: #10b981;
+    background: #10b981/30;
+    border: 1px solid #10b981/50;
     box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
 }
 
 /* Rear Item - Orange */
 .queue-item.rear {
-    background: #f59e0b;
+    background: #f59e0b/30;
+    border: 1px solid #f59e0b/50;
     box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
 }
 
 /* When only 1 item - gradient */
 .queue-item.front.rear {
-    background: linear-gradient(135deg, #10b981 0%, #f59e0b 100%);
+    background: linear-gradient(135deg, #10b981/30 0%, #f59e0b/30 100%);
 }
 
 /* Highlighted Item */
 .queue-item.highlighted {
-    box-shadow: 0 0 0 4px #ff9800, 0 0 25px rgba(255, 152, 0, 0.6);
+    box-shadow: 0 0 0 4px #f59e0b, 0 0 25px rgba(245, 158, 11, 0.6);
     transform: scale(1.15);
     z-index: 10;
 }
@@ -226,12 +239,13 @@
 /* Empty Queue */
 .queue-empty {
     padding: 30px 60px;
-    color: #999;
+    color: #94a3b8;
     font-style: italic;
-    background: #f8f8f8;
+    background: #1e293b;
     border-radius: 8px;
     text-align: center;
     font-size: 14px;
+    border: 1px solid #334155;
 }
 
 /* ========== KEYFRAME ANIMATIONS ========== */

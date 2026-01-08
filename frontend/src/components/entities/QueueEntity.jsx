@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import './QueueEntity.css';
 
-function QueueEntity({ id, data, meta, actions }) {
+function QueueEntity({ id, data, meta, actions, className }) {
     const { label, highlight = [], operation, processing } = meta || {};
     const displayData = data || [];
     const prevLengthRef = useRef(displayData.length);
@@ -83,7 +83,7 @@ function QueueEntity({ id, data, meta, actions }) {
     };
 
     return (
-        <div className="queue-entity">
+        <div className={`queue-entity ${className || ''}`}>
             <div className="entity-header">
                 <span className="entity-icon">📤</span>
                 <span className="entity-label">{label || 'Queue'}</span>

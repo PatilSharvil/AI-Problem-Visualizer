@@ -1,9 +1,15 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import './TreeEntity.css';
 
 /**
  * TreeEntity - Complete Tree Visualization Component
- * 
+ *
+ * Implements smooth, clean animations similar to VisuAlgo
+ * - Subtle highlighting for current operations
+ * - Smooth transitions between states
+ * - Clean, educational-focused visualization
+ * - Animated path highlighting from root to target node
+ *
  * Supports all tree visualization primitives:
  * - nodes: Display tree nodes with values
  * - edges: Connect parent-child nodes
@@ -13,10 +19,10 @@ import './TreeEntity.css';
  * - highlightedEdges: Highlight specific edges
  * - level: Show level indicators for BFS
  * - subtreeRoot: Highlight entire subtree
- * 
+ *
  * Operations: visit, insert, remove, search, traverse
  */
-function TreeEntity({ id, data, meta, actions }) {
+function TreeEntity({ id, data, meta, actions, className }) {
     const {
         label,
         currentNode,
@@ -33,8 +39,12 @@ function TreeEntity({ id, data, meta, actions }) {
         removing: null,
         visitedNodes: [],
         pathNodes: [],      // NEW: nodes on the path
-        foundNode: null     // NEW: final found node in search
+        foundNode: null,    // NEW: final found node in search
+        pathProgress: 0     // NEW: progress of path animation (0 to 1)
     });
+
+    const pathAnimationRef = useRef(null);
+    const prevPathNodesRef = useRef([]);
 
     // Parse tree data
     const treeData = useMemo(() => parseTreeData(data), [JSON.stringify(data)]);
@@ -85,19 +95,70 @@ function TreeEntity({ id, data, meta, actions }) {
             foundNode = foundAction.value;
         }
 
-        setAnimState({
-            visiting: visitingNode,
-            visitedNodes: visitedNodes,
-            pathNodes: pathNodes,
-            inserting: insertAction?.value || null,
-            removing: removeAction?.value || null,
-            foundNode: foundNode
-        });
+        // Reset path animation when path changes
+        if (JSON.stringify(prevPathNodesRef.current) !== JSON.stringify(pathNodes)) {
+            prevPathNodesRef.current = pathNodes;
+            setAnimState(prev => ({
+                ...prev,
+                visiting: visitingNode,
+                visitedNodes: visitedNodes,
+                pathNodes: pathNodes,
+                inserting: insertAction?.value || null,
+                removing: removeAction?.value || null,
+                foundNode: foundNode,
+                pathProgress: 0  // Reset animation progress
+            }));
+
+            // Start path animation
+            if (pathNodes.length > 0) {
+                if (pathAnimationRef.current) {
+                    clearTimeout(pathAnimationRef.current);
+                }
+
+                // Animate path progress from 0 to 1 over 1 second per node approximately
+                const totalDuration = Math.min(pathNodes.length * 200, 1000); // 200ms per node, max 1000ms
+                const steps = 20; // Number of animation steps
+                const stepDuration = totalDuration / steps;
+
+                let step = 0;
+                const animateStep = () => {
+                    step++;
+                    const progress = Math.min(step / steps, 1);
+                    setAnimState(prev => ({
+                        ...prev,
+                        pathProgress: progress
+                    }));
+
+                    if (step < steps) {
+                        pathAnimationRef.current = setTimeout(animateStep, stepDuration);
+                    }
+                };
+
+                pathAnimationRef.current = setTimeout(animateStep, stepDuration);
+            }
+        } else {
+            // Just update other states without resetting path
+            setAnimState(prev => ({
+                ...prev,
+                visiting: visitingNode,
+                visitedNodes: visitedNodes,
+                inserting: insertAction?.value || null,
+                removing: removeAction?.value || null,
+                foundNode: foundNode
+            }));
+        }
+
+        // Cleanup on unmount
+        return () => {
+            if (pathAnimationRef.current) {
+                clearTimeout(pathAnimationRef.current);
+            }
+        };
     }, [JSON.stringify(actions), JSON.stringify(data), currentNode, JSON.stringify(highlight), JSON.stringify(path)]);
 
     if (!treeData || treeData.nodes.length === 0) {
         return (
-            <div className="tree-entity">
+            <div className={`tree-entity ${className || ''}`}>
                 <div className="entity-header">
                     <span className="entity-icon">🌳</span>
                     <span className="entity-label">{label || 'Tree'}</span>
@@ -123,15 +184,33 @@ function TreeEntity({ id, data, meta, actions }) {
         return false;
     };
 
-    // Check if an edge should be highlighted
+    // Check if an edge should be highlighted based on animation progress
     const isEdgeHighlighted = (edge) => {
-        if (isEdgeOnPath(edge)) return true;
         if (highlightedEdges) {
             return highlightedEdges.some(([from, to]) =>
                 (edge.fromValue === from && edge.toValue === to) ||
                 (edge.fromValue === to && edge.toValue === from)
             );
         }
+
+        // Check if this edge is on the animated path
+        const pathNodes = animState.pathNodes;
+        if (!pathNodes || pathNodes.length < 2) return false;
+
+        // Find the position of this edge in the path
+        for (let i = 0; i < pathNodes.length - 1; i++) {
+            if ((edge.fromValue === pathNodes[i] && edge.toValue === pathNodes[i + 1]) ||
+                (edge.fromValue === pathNodes[i + 1] && edge.toValue === pathNodes[i])) {
+
+                // Calculate what portion of the path should be highlighted based on progress
+                const edgeIndex = i;
+                const totalEdges = pathNodes.length - 1;
+                const edgeProgressThreshold = (edgeIndex + 1) / totalEdges;
+
+                return animState.pathProgress >= edgeProgressThreshold;
+            }
+        }
+
         return false;
     };
 
@@ -145,9 +224,18 @@ function TreeEntity({ id, data, meta, actions }) {
         if (animState.visiting === node.value) {
             classes.push('visiting');
         }
-        // On the search path
+        // On the search path (highlighted based on animation progress)
         else if (animState.pathNodes.includes(node.value)) {
-            classes.push('in-path');
+            // Calculate if this node should be highlighted based on progress
+            const nodeIndexInPath = animState.pathNodes.indexOf(node.value);
+            if (nodeIndexInPath >= 0) {
+                const totalNodes = animState.pathNodes.length;
+                const nodeProgressThreshold = (nodeIndexInPath + 1) / totalNodes;
+
+                if (animState.pathProgress >= nodeProgressThreshold) {
+                    classes.push('in-path');
+                }
+            }
         }
         // Already visited
         else if (animState.visitedNodes.includes(node.value)) {
@@ -168,7 +256,7 @@ function TreeEntity({ id, data, meta, actions }) {
     };
 
     return (
-        <div className="tree-entity">
+        <div className={`tree-entity ${className || ''}`}>
             <div className="entity-header">
                 <span className="entity-icon">🌳</span>
                 <span className="entity-label">{label || 'Tree'}</span>
@@ -380,7 +468,7 @@ function insertIntoBST(node, value) {
 }
 
 /**
- * Layout tree with positions
+ * Layout tree with positions - optimized for clear visualization like VisuAlgo
  */
 function layoutTree(root) {
     if (!root) return { nodes: [], edges: [], width: 100, height: 100, levels: [] };
@@ -391,20 +479,19 @@ function layoutTree(root) {
 
     const depth = getTreeDepth(root);
     const levelHeight = 80;
-    const padding = 50;
+    const horizontalSpacing = 60; // Reduced for cleaner look
+    const padding = 40; // Reduced padding
     const maxWidth = Math.pow(2, depth - 1);
-    const baseWidth = Math.max(maxWidth * 80, 400);
+    const baseWidth = Math.max(maxWidth * horizontalSpacing, 300);
 
     // Track levels for BFS visualization
     for (let i = 0; i < depth; i++) {
         levels.push({ y: padding + i * levelHeight });
     }
 
-    function positionNode(node, level, leftBound, rightBound, parentX, parentY) {
+    // Calculate horizontal positions more precisely to avoid overlapping
+    function calculatePositions(node, level, x, y, parentX, parentY) {
         if (!node) return;
-
-        const x = (leftBound + rightBound) / 2;
-        const y = padding + level * levelHeight;
 
         nodes.push({
             value: node.value,
@@ -425,12 +512,24 @@ function layoutTree(root) {
             });
         }
 
-        const mid = (leftBound + rightBound) / 2;
-        positionNode(node.left, level + 1, leftBound, mid, x, y);
-        positionNode(node.right, level + 1, mid, rightBound, x, y);
+        // Calculate child positions based on tree structure
+        if (node.left || node.right) {
+            const childY = y + levelHeight;
+            const childSpacing = Math.max(horizontalSpacing / Math.pow(2, level), 30); // Minimum spacing
+
+            if (node.left) {
+                const leftX = x - childSpacing;
+                calculatePositions(node.left, level + 1, leftX, childY, x, y);
+            }
+
+            if (node.right) {
+                const rightX = x + childSpacing;
+                calculatePositions(node.right, level + 1, rightX, childY, x, y);
+            }
+        }
     }
 
-    positionNode(root, 0, padding, baseWidth - padding, null, null);
+    calculatePositions(root, 0, baseWidth / 2, padding, null, null);
 
     return {
         nodes,

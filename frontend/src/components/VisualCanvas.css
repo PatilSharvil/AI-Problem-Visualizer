@@ -1,0 +1,202 @@
+.visual-canvas-container {
+  @apply relative w-full h-full min-h-[500px] bg-gradient-to-br from-slate-900/50 via-slate-800/30 to-indigo-900/20 p-4 overflow-auto;
+}
+
+.visual-canvas-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.visual-canvas-content {
+  @apply relative z-10 flex flex-col gap-6 items-center min-h-full p-4;
+}
+
+.entity-card {
+  @apply bg-surface/60 backdrop-blur-sm border border-white/15 rounded-xl p-5 shadow-2xl w-full max-w-4xl transition-all duration-300 hover:border-primary/30;
+}
+
+.entity-card-header {
+  @apply flex items-center justify-between mb-4 pb-3 border-b border-white/10;
+}
+
+.entity-card-icon {
+  @apply text-2xl mr-3;
+}
+
+.entity-card-label {
+  @apply text-base font-bold text-primary capitalize;
+}
+
+.entity-card-size {
+  @apply text-xs font-mono bg-surface/50 text-text-secondary px-2.5 py-1 rounded-full border border-white/10;
+}
+
+.entity-card-content {
+  @apply w-full;
+}
+
+/* Action banners with theme consistency */
+.action-banner {
+  @apply text-center py-2.5 px-4 mb-4 rounded-lg font-semibold text-sm transition-all duration-300;
+}
+
+.action-banner.swap {
+  @apply bg-emerald-500/20 border border-emerald-500/30 text-emerald-300;
+}
+
+.action-banner.insert {
+  @apply bg-blue-500/20 border border-blue-500/30 text-blue-300;
+}
+
+.action-banner.remove {
+  @apply bg-rose-500/20 border border-rose-500/30 text-rose-300;
+}
+
+/* Dark theme overrides for entity components */
+.array-entity-dark {
+  @apply bg-surface/50 border border-white/10 rounded-lg p-4;
+}
+
+.array-entity-dark .entity-header {
+  @apply flex items-center gap-3 mb-4 pb-3 border-b border-white/10;
+}
+
+.array-entity-dark .entity-icon {
+  @apply text-xl;
+}
+
+.array-entity-dark .entity-label {
+  @apply text-sm font-bold text-primary uppercase tracking-wider;
+}
+
+.array-entity-dark .entity-size {
+  @apply ml-auto text-xs text-text-secondary bg-surface/70 px-3 py-1 rounded-full border border-white/10;
+}
+
+.array-entity-dark .entity-content {
+  @apply flex flex-wrap gap-3 justify-center p-4 bg-surface/30 border border-white/5 rounded-lg min-h-[80px];
+}
+
+.array-entity-dark .array-box-wrapper {
+  @apply flex flex-col items-center relative;
+}
+
+.array-entity-dark .array-box {
+  @apply w-12 h-12 flex items-center justify-center bg-surface border border-white/20 rounded-lg font-bold text-text-primary transition-all duration-200;
+}
+
+.array-entity-dark .array-box.highlighted {
+  @apply bg-amber-500/20 border border-amber-500/50 text-amber-300 shadow-lg shadow-amber-500/10;
+}
+
+.array-entity-dark .array-box.swap-active {
+  @apply bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 shadow-lg shadow-emerald-500/10 transform scale-110;
+}
+
+.array-entity-dark .box-index {
+  @apply text-xs text-text-secondary mt-2;
+}
+
+.array-entity-dark .pointer-labels {
+  @apply absolute -top-6 flex gap-1.5;
+}
+
+.array-entity-dark .ptr {
+  @apply text-[10px] font-bold px-2 py-0.5 rounded border;
+}
+
+.array-entity-dark .ptr.i,
+.array-entity-dark .ptr.left,
+.array-entity-dark .ptr.start {
+  @apply bg-red-500/30 text-red-300 border-red-500/50;
+}
+
+.array-entity-dark .ptr.j,
+.array-entity-dark .ptr.right,
+.array-entity-dark .ptr.end {
+  @apply bg-blue-500/30 text-blue-300 border-blue-500/50;
+}
+
+.array-entity-dark .ptr.curr,
+.array-entity-dark .ptr.mid {
+  @apply bg-emerald-500/30 text-emerald-300 border-emerald-500/50;
+}
+
+.array-entity-dark .ptr.prev {
+  @apply bg-amber-500/30 text-amber-300 border-amber-500/50;
+}
+
+.array-entity-dark .ptr.next {
+  @apply bg-violet-500/30 text-violet-300 border-violet-500/50;
+}
+
+.array-entity-dark .ptr.pivot {
+  @apply bg-rose-500/30 text-rose-300 border-rose-500/50;
+}
+
+.array-entity-dark .entity-empty {
+  @apply p-8 text-center text-text-secondary italic bg-surface/30 border border-white/5 rounded-lg;
+}
+
+/* Smooth transitions for animations */
+.array-entity-dark .array-box-wrapper.swapping {
+  @apply z-20;
+}
+
+.array-entity-dark .array-box-wrapper.removing {
+  animation: fadeOut 0.5s ease forwards;
+}
+
+.array-entity-dark .array-box-wrapper.inserting {
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.5) translateY(-20px);
+  }
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Scrollbar styling for canvas */
+.visual-canvas-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.visual-canvas-container::-webkit-scrollbar-track {
+  @apply bg-surface/30;
+}
+
+.visual-canvas-container::-webkit-scrollbar-thumb {
+  @apply bg-secondary/30 rounded hover:bg-secondary/50;
+}
+
+.visual-canvas-container::-webkit-scrollbar-corner {
+  @apply bg-transparent;
+}

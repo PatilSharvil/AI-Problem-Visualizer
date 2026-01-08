@@ -1,13 +1,13 @@
 import React from 'react';
 import './MatrixEntity.css';
 
-function MatrixEntity({ id, data, meta, actions }) {
+function MatrixEntity({ id, data, meta, actions, className }) {
     const { label, currentCell, path } = meta || {};
     const matrix = Array.isArray(data) ? data : [];
 
     if (matrix.length === 0) {
         return (
-            <div className="matrix-entity">
+            <div className={`matrix-entity ${className || ''}`}>
                 <div className="entity-header">
                     <span className="entity-icon">🔢</span>
                     <span className="entity-label">{label || 'Matrix'}</span>
@@ -28,7 +28,7 @@ function MatrixEntity({ id, data, meta, actions }) {
     };
 
     return (
-        <div className="matrix-entity">
+        <div className={`matrix-entity ${className || ''}`}>
             <div className="entity-header">
                 <span className="entity-icon">🔢</span>
                 <span className="entity-label">{label || 'Matrix'}</span>

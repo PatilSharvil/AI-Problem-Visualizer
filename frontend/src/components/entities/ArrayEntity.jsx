@@ -4,7 +4,7 @@ import './ArrayEntity.css';
 /**
  * Universal Array Entity - renders array with action-based animations
  */
-function ArrayEntity({ id, data, meta, actions }) {
+function ArrayEntity({ id, data, meta, actions, className }) {
     const { label, pointers, highlight } = meta || {};
     const [animState, setAnimState] = useState({ swap: null, removing: [], inserting: null });
     const prevDataRef = useRef(null);
@@ -56,7 +56,7 @@ function ArrayEntity({ id, data, meta, actions }) {
 
     if (!displayData || displayData.length === 0) {
         return (
-            <div className="array-entity">
+            <div className={`array-entity ${className || ''}`}>
                 <div className="entity-header">
                     <span className="entity-icon">📊</span>
                     <span className="entity-label">{label || 'Array'}</span>
@@ -89,7 +89,7 @@ function ArrayEntity({ id, data, meta, actions }) {
     };
 
     return (
-        <div className="array-entity">
+        <div className={`array-entity ${className || ''}`}>
             <div className="entity-header">
                 <span className="entity-icon">📊</span>
                 <span className="entity-label">{label || 'Array'}</span>
@@ -109,9 +109,9 @@ function ArrayEntity({ id, data, meta, actions }) {
                     return (
                         <div
                             key={`${idx}-${animState.swap ? 'swap' : 'normal'}`}
-                            className={`array-box-wrapper 
-                ${isSwapping(idx) ? 'swapping' : ''} 
-                ${isRemoving(idx) ? 'removing' : ''} 
+                            className={`array-box-wrapper
+                ${isSwapping(idx) ? 'swapping' : ''}
+                ${isRemoving(idx) ? 'removing' : ''}
                 ${isInserting(idx) ? 'inserting' : ''}`}
                             style={{
                                 transform: getSwapTransform(idx),
@@ -124,8 +124,8 @@ function ArrayEntity({ id, data, meta, actions }) {
                                     {ptrs.map(p => <span key={p} className={`ptr ${p}`}>{p}</span>)}
                                 </div>
                             )}
-                            <div className={`array-box 
-                ${isHighlighted(idx) ? 'highlighted' : ''} 
+                            <div className={`array-box
+                ${isHighlighted(idx) ? 'highlighted' : ''}
                 ${isSwapping(idx) ? 'swap-active' : ''}`}>
                                 {val === null || val === undefined ? '–' : String(val)}
                             </div>

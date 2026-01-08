@@ -134,6 +134,14 @@ function runExecutors(llmOutput, originalProblem = '') {
         return universalArrayResult;
     }
 
+    // UNIVERSAL TREE EXECUTOR - handles any tree-related query
+    // Validates LLM output and provides deterministic fallback
+    const universalTreeResult = universalTreeExecutor(llmOutput, originalProblem);
+    if (universalTreeResult) {
+        console.log('[Executor] Using UNIVERSAL tree executor - validated/corrected output');
+        return universalTreeResult;
+    }
+
     if (!llmOutput || typeof llmOutput !== 'object') {
         return llmOutput;
     }
@@ -1911,6 +1919,7 @@ function queueExecutor(step) {
  * - Detects insert/remove from step title
  * - Recomputes correct BST structure using deterministic algorithms
  * - Removes duplicates and validates structure
+ * - Enforces BST rules for all operations
  */
 function treeExecutor(step, previousTree, queryOperations = []) {
     if (!step) return step;
@@ -1972,17 +1981,190 @@ function treeExecutor(step, previousTree, queryOperations = []) {
             validated.tree = removeDuplicatesFromTree(validated.tree);
             // Trim trailing nulls
             validated.tree = trimTrailingNulls(validated.tree);
+
+            // Validate BST properties and fix if needed
+            validated.tree = validateAndFixBSTStructure(validated.tree);
         }
     }
 
-    // Clean up result array
+    // Clean up result array to ensure consistency with tree structure
     if (Array.isArray(validated.result) && Array.isArray(validated.tree)) {
         const treeValues = new Set(validated.tree.filter(v => v !== null && v !== undefined));
         validated.result = validated.result.filter(v => treeValues.has(v));
         validated.result = [...new Set(validated.result)];
     }
 
+    // For tree traversals, ensure result matches the actual traversal of the tree
+    if (Array.isArray(validated.result) && Array.isArray(validated.tree) && validated.tree.length > 0) {
+        // Check if this is a traversal operation based on title/description
+        const title = (validated.title || '').toLowerCase();
+        const description = (validated.description || '').toLowerCase();
+        const isTraversal = title.includes('traversal') ||
+                          title.includes('visit') ||
+                          description.includes('traversal') ||
+                          description.includes('visit') ||
+                          title.includes('inorder') ||
+                          title.includes('preorder') ||
+                          title.includes('postorder');
+
+        if (isTraversal) {
+            // Get the actual inorder/preorder/postorder from the current tree
+            const actualTreeRoot = levelOrderToTree(validated.tree);
+            if (actualTreeRoot) {
+                let expectedTraversal = [];
+
+                // Determine traversal type based on title
+                if (title.includes('inorder') || description.includes('inorder')) {
+                    expectedTraversal = getInorderTraversal(actualTreeRoot);
+                } else if (title.includes('preorder') || description.includes('preorder')) {
+                    expectedTraversal = getPreorderTraversal(actualTreeRoot);
+                } else if (title.includes('postorder') || description.includes('postorder')) {
+                    expectedTraversal = getPostorderTraversal(actualTreeRoot);
+                } else {
+                    // Default to inorder for general traversals
+                    expectedTraversal = getInorderTraversal(actualTreeRoot);
+                }
+
+                // If the result is empty or doesn't match expected traversal length, use the expected one
+                if (validated.result.length === 0 ||
+                    (validated.result.length !== expectedTraversal.length &&
+                     expectedTraversal.length <= validated.result.length)) {
+                    validated.result = expectedTraversal;
+                } else {
+                    // Otherwise, filter the result to only include values that exist in the tree
+                    const treeValues = new Set(validated.tree.filter(v => v !== null && v !== undefined));
+                    validated.result = validated.result.filter(v => treeValues.has(v));
+                    validated.result = [...new Set(validated.result)];
+                }
+            }
+        }
+    }
+
     return validated;
+}
+
+/**
+ * Get inorder traversal of a tree
+ */
+function getInorderTraversal(root) {
+    const result = [];
+    function inorder(node) {
+        if (!node) return;
+        inorder(node.left);
+        result.push(node.value);
+        inorder(node.right);
+    }
+    inorder(root);
+    return result;
+}
+
+/**
+ * Get preorder traversal of a tree
+ */
+function getPreorderTraversal(root) {
+    const result = [];
+    function preorder(node) {
+        if (!node) return;
+        result.push(node.value);
+        preorder(node.left);
+        preorder(node.right);
+    }
+    preorder(root);
+    return result;
+}
+
+/**
+ * Get postorder traversal of a tree
+ */
+function getPostorderTraversal(root) {
+    const result = [];
+    function postorder(node) {
+        if (!node) return;
+        postorder(node.left);
+        postorder(node.right);
+        result.push(node.value);
+    }
+    postorder(root);
+    return result;
+}
+
+/**
+ * Validates and fixes BST structure to ensure BST properties are maintained
+ * - Ensures left < parent < right for all nodes
+ * - Removes duplicates
+ * - Rebuilds tree if BST properties are violated
+ */
+function validateAndFixBSTStructure(tree) {
+    if (!Array.isArray(tree) || tree.length === 0) return tree;
+
+    // Extract valid values from the tree
+    const validValues = tree.filter(v => v !== null && v !== undefined && !isNaN(v));
+
+    if (validValues.length === 0) return tree;
+
+    // Check if the tree structure is valid BST by converting to BST and back
+    try {
+        // Build a proper BST from the values
+        const root = buildBSTFromValues(validValues);
+        const fixedTree = treeToLevelOrder(root);
+
+        // Compare if the original tree was already a valid BST
+        const originalRoot = levelOrderToTree(tree);
+        if (originalRoot && isValidBST(originalRoot)) {
+            // Original tree was valid, return as is
+            return tree;
+        } else {
+            // Original tree was invalid, return the fixed version
+            console.log(`[BST Validator] Fixed invalid BST structure. Original: [${tree.filter(v => v !== null).slice(0, 10)}], Fixed: [${fixedTree.filter(v => v !== null).slice(0, 10)}]`);
+            return fixedTree;
+        }
+    } catch (e) {
+        console.warn(`[BST Validator] Error validating BST: ${e.message}`);
+        return tree; // Return original if validation fails
+    }
+}
+
+/**
+ * Build a valid BST from an array of values
+ */
+function buildBSTFromValues(values) {
+    if (!values || values.length === 0) return null;
+
+    let root = null;
+    for (const val of values) {
+        if (typeof val === 'number' && !isNaN(val)) {
+            root = insertIntoBST(root, val);
+        }
+    }
+    return root;
+}
+
+/**
+ * Insert value into BST (maintains BST properties)
+ */
+function insertIntoBST(node, value) {
+    if (node === null) {
+        return { value, left: null, right: null };
+    }
+    if (value < node.value) {
+        node.left = insertIntoBST(node.left, value);
+    } else if (value > node.value) {
+        node.right = insertIntoBST(node.right, value);
+    }
+    // If value === node.value, we skip to avoid duplicates
+    return node;
+}
+
+/**
+ * Check if a tree is a valid BST
+ */
+function isValidBST(node, min = -Infinity, max = Infinity) {
+    if (node === null) return true;
+
+    if (node.value <= min || node.value >= max) return false;
+
+    return isValidBST(node.left, min, node.value) &&
+           isValidBST(node.right, node.value, max);
 }
 
 // Helper wrappers that use the BST functions defined later
@@ -2191,6 +2373,546 @@ function removeFromBSTNode(node, value) {
     return node;
 }
 
+/**
+ * Universal Tree Executor - Handles any tree-related query
+ * 1. Detects if query is tree-related
+ * 2. Validates and corrects LLM output
+ * 3. Provides deterministic fallback if LLM output is invalid
+ */
+function universalTreeExecutor(llmOutput, query) {
+    if (!query) return null;
+    const queryLower = query.toLowerCase();
+
+    // Check if this is a tree-related query
+    const isTreeQuery =
+        queryLower.includes('tree') ||
+        queryLower.includes('bst') ||
+        queryLower.includes('binary search tree') ||
+        queryLower.includes('binary tree') ||
+        queryLower.includes('traversal') ||
+        queryLower.includes('inorder') ||
+        queryLower.includes('preorder') ||
+        queryLower.includes('postorder') ||
+        queryLower.includes('insert') && queryLower.includes('tree') ||
+        queryLower.includes('remove') && queryLower.includes('tree') ||
+        queryLower.includes('delete') && queryLower.includes('tree') ||
+        queryLower.includes('search') && queryLower.includes('tree') ||
+        queryLower.includes('find') && queryLower.includes('tree') ||
+        queryLower.includes('construct') && queryLower.includes('tree') ||
+        queryLower.includes('build') && queryLower.includes('tree') ||
+        /\[([0-9,\s]+)\]/.test(query) && (queryLower.includes('tree') || queryLower.includes('bst'));
+
+    if (!isTreeQuery) return null;
+
+    console.log(`[Universal Tree Executor] Processing: "${query.substring(0, 50)}..."`);
+
+    // If we have LLM output, validate and correct it
+    if (llmOutput && llmOutput.steps && Array.isArray(llmOutput.steps) && llmOutput.steps.length > 0) {
+        const correctedOutput = validateAndCorrectTreeOutput(llmOutput, query);
+        if (correctedOutput) {
+            return correctedOutput;
+        }
+    }
+
+    // Fallback: Generate deterministic tree visualization
+    return generateTreeFallback(query);
+}
+
+/**
+ * Validates and corrects LLM output for tree problems
+ */
+function validateAndCorrectTreeOutput(llmOutput, query) {
+    try {
+        const output = JSON.parse(JSON.stringify(llmOutput));
+
+        // Ensure structures include tree
+        if (!output.structures) output.structures = [];
+
+        const hasTree = output.structures.some(s => s.type === 'tree' || s.id === 'tree');
+        if (!hasTree) {
+            // Extract tree from query if possible
+            const treeData = parseTreeFromQuery(query);
+            output.structures.push({
+                id: 'tree',
+                type: 'tree',
+                label: 'BST',
+                data: treeData || [4, 2, 6, 1, 3, 5, 7] // default tree
+            });
+        }
+
+        // Validate each step has proper tree data
+        let isValid = true;
+        const treeStructure = output.structures.find(s => s.type === 'tree' || s.id === 'tree');
+        let currentTree = treeStructure ? [...treeStructure.data] : [];
+
+        for (let i = 0; i < output.steps.length; i++) {
+            const step = output.steps[i];
+
+            // Ensure step has title and description
+            if (!step.title) step.title = `Step ${i + 1}`;
+            if (!step.description) step.description = '';
+
+            // Detect tree operations from title and description
+            const titleLower = (step.title || '').toLowerCase();
+            const descLower = (step.description || '').toLowerCase();
+            const fullText = titleLower + ' ' + descLower;
+
+            // Check for insert operation
+            const insertMatch = fullText.match(/insert[:\s]+(\d+)/i);
+            if (insertMatch) {
+                const valueToInsert = parseInt(insertMatch[1]);
+                if (!isNaN(valueToInsert)) {
+                    currentTree = bstInsert(currentTree, valueToInsert);
+                }
+            }
+
+            // Check for remove operation
+            const removeMatch = fullText.match(/remove[:\s]+(\d+)/i) || fullText.match(/delete[:\s]+(\d+)/i);
+            if (removeMatch) {
+                const valueToRemove = parseInt(removeMatch[1]);
+                if (!isNaN(valueToRemove)) {
+                    currentTree = bstRemove(currentTree, valueToRemove);
+                }
+            }
+
+            // Ensure step has tree field - use current tree if missing
+            if (!step.tree || !Array.isArray(step.tree)) {
+                step.tree = [...currentTree];
+            }
+
+            // Validate tree consistency
+            if (i > 0 && step.tree && output.steps[i - 1].tree) {
+                const prevTree = output.steps[i - 1].tree;
+                // Basic validation - tree shouldn't change drastically without reason
+                const prevCount = prevTree.filter(v => v !== null && v !== undefined).length;
+                const currCount = step.tree.filter(v => v !== null && v !== undefined).length;
+
+                // If counts differ significantly without insert/remove indication, might be invalid
+                if (Math.abs(currCount - prevCount) > 1) {
+                    // Use current tree instead
+                    step.tree = [...currentTree];
+                }
+            }
+        }
+
+        // Ensure at least one step has tree data
+        const hasTreeData = output.steps.some(s => s.tree && Array.isArray(s.tree) && s.tree.length > 0);
+        if (hasTreeData) {
+            console.log('[Universal Tree] Validated and corrected LLM output');
+            return output;
+        }
+
+        return null;
+    } catch (e) {
+        console.error('[Universal Tree] Validation error:', e.message);
+        return null;
+    }
+}
+
+/**
+ * Generates deterministic tree fallback based on query
+ */
+function generateTreeFallback(query) {
+    console.log('[Universal Tree] Generating fallback visualization');
+
+    // Extract tree data from query if present
+    const treeData = parseTreeFromQuery(query);
+    let tree = treeData || [4, 2, 6, 1, 3, 5, 7]; // default tree
+
+    // Detect operation type from query
+    const queryLower = query.toLowerCase();
+
+    if (queryLower.includes('inorder')) {
+        return generateInorderTraversal(tree, query);
+    } else if (queryLower.includes('preorder')) {
+        return generatePreorderTraversal(tree, query);
+    } else if (queryLower.includes('postorder')) {
+        return generatePostorderTraversal(tree, query);
+    } else if (queryLower.includes('insert')) {
+        return generateInsertOperation(tree, query);
+    } else if (queryLower.includes('remove') || queryLower.includes('delete')) {
+        return generateRemoveOperation(tree, query);
+    } else if (queryLower.includes('search') || queryLower.includes('find')) {
+        return generateSearchOperation(tree, query);
+    } else {
+        // Default: simple traversal
+        return generateInorderTraversal(tree, query);
+    }
+}
+
+/**
+ * Generate inorder traversal visualization
+ */
+function generateInorderTraversal(tree, query) {
+    console.log('[Tree] Generating inorder traversal');
+
+    const steps = [];
+    const root = levelOrderToTree(tree);
+    const inorderResult = [];
+
+    // Simulate inorder traversal step by step
+    function inorderSimulate(node, path = []) {
+        if (!node) return;
+
+        // Visit left subtree
+        if (node.left) {
+            steps.push({
+                title: `Visit Left Subtree of ${node.value}`,
+                description: `Going to left child of ${node.value}`,
+                tree: [...tree],
+                path: [...path, node.value],
+                result: [...inorderResult]
+            });
+            inorderSimulate(node.left, [...path, node.value]);
+        }
+
+        // Visit current node
+        inorderResult.push(node.value);
+        steps.push({
+            title: `Visit ${node.value}`,
+            description: `Processing node ${node.value}`,
+            tree: [...tree],
+            path: [...path, node.value],
+            result: [...inorderResult]
+        });
+
+        // Visit right subtree
+        if (node.right) {
+            steps.push({
+                title: `Visit Right Subtree of ${node.value}`,
+                description: `Going to right child of ${node.value}`,
+                tree: [...tree],
+                path: [...path, node.value],
+                result: [...inorderResult]
+            });
+            inorderSimulate(node.right, [...path, node.value]);
+        }
+    }
+
+    // Add initial step
+    steps.push({
+        title: 'Start Inorder Traversal',
+        description: 'Begin inorder traversal (Left, Root, Right)',
+        tree: [...tree],
+        path: [],
+        result: []
+    });
+
+    // Perform traversal
+    inorderSimulate(root);
+
+    // Add completion step
+    steps.push({
+        title: 'Traversal Complete',
+        description: `Inorder result: [${inorderResult.join(', ')}]`,
+        tree: [...tree],
+        result: [...inorderResult]
+    });
+
+    return {
+        structures: [{ id: 'tree', type: 'tree', label: 'BST', data: tree }],
+        steps
+    };
+}
+
+/**
+ * Generate preorder traversal visualization
+ */
+function generatePreorderTraversal(tree, query) {
+    console.log('[Tree] Generating preorder traversal');
+
+    const steps = [];
+    const root = levelOrderToTree(tree);
+    const preorderResult = [];
+
+    // Simulate preorder traversal step by step
+    function preorderSimulate(node, path = []) {
+        if (!node) return;
+
+        // Visit current node first
+        preorderResult.push(node.value);
+        steps.push({
+            title: `Visit ${node.value}`,
+            description: `Processing node ${node.value} (Root first)`,
+            tree: [...tree],
+            path: [...path, node.value],
+            result: [...preorderResult]
+        });
+
+        // Visit left subtree
+        if (node.left) {
+            steps.push({
+                title: `Visit Left Subtree of ${node.value}`,
+                description: `Going to left child of ${node.value}`,
+                tree: [...tree],
+                path: [...path, node.value],
+                result: [...preorderResult]
+            });
+            preorderSimulate(node.left, [...path, node.value]);
+        }
+
+        // Visit right subtree
+        if (node.right) {
+            steps.push({
+                title: `Visit Right Subtree of ${node.value}`,
+                description: `Going to right child of ${node.value}`,
+                tree: [...tree],
+                path: [...path, node.value],
+                result: [...preorderResult]
+            });
+            preorderSimulate(node.right, [...path, node.value]);
+        }
+    }
+
+    // Add initial step
+    steps.push({
+        title: 'Start Preorder Traversal',
+        description: 'Begin preorder traversal (Root, Left, Right)',
+        tree: [...tree],
+        path: [],
+        result: []
+    });
+
+    // Perform traversal
+    preorderSimulate(root);
+
+    // Add completion step
+    steps.push({
+        title: 'Traversal Complete',
+        description: `Preorder result: [${preorderResult.join(', ')}]`,
+        tree: [...tree],
+        result: [...preorderResult]
+    });
+
+    return {
+        structures: [{ id: 'tree', type: 'tree', label: 'BST', data: tree }],
+        steps
+    };
+}
+
+/**
+ * Generate postorder traversal visualization
+ */
+function generatePostorderTraversal(tree, query) {
+    console.log('[Tree] Generating postorder traversal');
+
+    const steps = [];
+    const root = levelOrderToTree(tree);
+    const postorderResult = [];
+
+    // Simulate postorder traversal step by step
+    function postorderSimulate(node, path = []) {
+        if (!node) return;
+
+        // Visit left subtree first
+        if (node.left) {
+            steps.push({
+                title: `Visit Left Subtree of ${node.value}`,
+                description: `Going to left child of ${node.value}`,
+                tree: [...tree],
+                path: [...path, node.value],
+                result: [...postorderResult]
+            });
+            postorderSimulate(node.left, [...path, node.value]);
+        }
+
+        // Visit right subtree
+        if (node.right) {
+            steps.push({
+                title: `Visit Right Subtree of ${node.value}`,
+                description: `Going to right child of ${node.value}`,
+                tree: [...tree],
+                path: [...path, node.value],
+                result: [...postorderResult]
+            });
+            postorderSimulate(node.right, [...path, node.value]);
+        }
+
+        // Visit current node last
+        postorderResult.push(node.value);
+        steps.push({
+            title: `Visit ${node.value}`,
+            description: `Processing node ${node.value} (Last)`,
+            tree: [...tree],
+            path: [...path, node.value],
+            result: [...postorderResult]
+        });
+    }
+
+    // Add initial step
+    steps.push({
+        title: 'Start Postorder Traversal',
+        description: 'Begin postorder traversal (Left, Right, Root)',
+        tree: [...tree],
+        path: [],
+        result: []
+    });
+
+    // Perform traversal
+    postorderSimulate(root);
+
+    // Add completion step
+    steps.push({
+        title: 'Traversal Complete',
+        description: `Postorder result: [${postorderResult.join(', ')}]`,
+        tree: [...tree],
+        result: [...postorderResult]
+    });
+
+    return {
+        structures: [{ id: 'tree', type: 'tree', label: 'BST', data: tree }],
+        steps
+    };
+}
+
+/**
+ * Generate insert operation visualization
+ */
+function generateInsertOperation(tree, query) {
+    console.log('[Tree] Generating insert operation');
+
+    // Extract value to insert from query
+    const insertMatch = query.match(/insert\s+(\d+)/i) || query.match(/add\s+(\d+)/i);
+    const valueToInsert = insertMatch ? parseInt(insertMatch[1]) : 8; // default value
+
+    const steps = [];
+
+    // Initial state
+    steps.push({
+        title: 'Initial Tree',
+        description: `Starting tree: [${tree.join(', ')}]`,
+        tree: [...tree],
+        result: []
+    });
+
+    // Insert step
+    const newTree = bstInsert(tree, valueToInsert);
+    steps.push({
+        title: `Insert ${valueToInsert}`,
+        description: `Inserting ${valueToInsert} into the tree`,
+        tree: [...newTree],
+        result: [valueToInsert]
+    });
+
+    // Completion
+    steps.push({
+        title: 'Insert Complete',
+        description: `Value ${valueToInsert} inserted successfully`,
+        tree: [...newTree],
+        result: [valueToInsert]
+    });
+
+    return {
+        structures: [{ id: 'tree', type: 'tree', label: 'BST', data: tree }],
+        steps
+    };
+}
+
+/**
+ * Generate remove operation visualization
+ */
+function generateRemoveOperation(tree, query) {
+    console.log('[Tree] Generating remove operation');
+
+    // Extract value to remove from query
+    const removeMatch = query.match(/remove\s+(\d+)/i) || query.match(/delete\s+(\d+)/i);
+    const valueToRemove = removeMatch ? parseInt(removeMatch[1]) : 2; // default value
+
+    const steps = [];
+
+    // Initial state
+    steps.push({
+        title: 'Initial Tree',
+        description: `Starting tree: [${tree.join(', ')}]`,
+        tree: [...tree],
+        result: []
+    });
+
+    // Remove step
+    const newTree = bstRemove(tree, valueToRemove);
+    steps.push({
+        title: `Remove ${valueToRemove}`,
+        description: `Removing ${valueToRemove} from the tree`,
+        tree: [...newTree],
+        result: [valueToRemove]
+    });
+
+    // Completion
+    steps.push({
+        title: 'Remove Complete',
+        description: `Value ${valueToRemove} removed successfully`,
+        tree: [...newTree],
+        result: [valueToRemove]
+    });
+
+    return {
+        structures: [{ id: 'tree', type: 'tree', label: 'BST', data: tree }],
+        steps
+    };
+}
+
+/**
+ * Generate search operation visualization
+ */
+function generateSearchOperation(tree, query) {
+    console.log('[Tree] Generating search operation');
+
+    // Extract value to search from query
+    const searchMatch = query.match(/search\s+for\s+(\d+)/i) || query.match(/find\s+(\d+)/i);
+    const valueToSearch = searchMatch ? parseInt(searchMatch[1]) : 3; // default value
+
+    const steps = [];
+    const root = levelOrderToTree(tree);
+    const path = [];
+
+    // Initial state
+    steps.push({
+        title: 'Start Search',
+        description: `Searching for ${valueToSearch} in the tree`,
+        tree: [...tree],
+        path: [],
+        result: []
+    });
+
+    // Simulate search
+    let current = root;
+    let found = false;
+
+    while (current) {
+        path.push(current.value);
+        steps.push({
+            title: `Visit ${current.value}`,
+            description: `${valueToSearch} ${valueToSearch < current.value ? '<' : valueToSearch > current.value ? '>' : '=='} ${current.value}, ${valueToSearch < current.value ? 'go left' : valueToSearch > current.value ? 'go right' : 'FOUND!'}`,
+            tree: [...tree],
+            path: [...path],
+            result: [...path]
+        });
+
+        if (valueToSearch === current.value) {
+            found = true;
+            break;
+        } else if (valueToSearch < current.value) {
+            current = current.left;
+        } else {
+            current = current.right;
+        }
+    }
+
+    // Result step
+    steps.push({
+        title: found ? `Found ${valueToSearch}!` : `${valueToSearch} Not Found`,
+        description: found ? `Value ${valueToSearch} found at path: [${path.join(' → ')}]` : `Value ${valueToSearch} not present in tree`,
+        tree: [...tree],
+        path: [...path],
+        result: found ? [valueToSearch] : [-1]
+    });
+
+    return {
+        structures: [{ id: 'tree', type: 'tree', label: 'BST', data: tree }],
+        steps
+    };
+}
+
 module.exports = {
     runExecutors,
     isExecutorsEnabled,
@@ -2201,6 +2923,8 @@ module.exports = {
     treeExecutor,
     pointersExecutor,
     structureExecutor,
+    // Universal executors
+    universalTreeExecutor,
     // BST helpers (for use in normalizer/controller)
     bstInsert,
     bstRemove,
