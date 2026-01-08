@@ -64,13 +64,13 @@
 ### File Paths Added/Changed in This Session:
 - `backend/src/services/ollamaAdapter.js` - Extensive implementation with examples for multiple algorithm patterns
 - `backend/src/services/universalNormalizer.js` - Comprehensive normalizer for converting LLM output to entity+action frames
-- `backend/src/services/executors.js` - Deterministic executors for multiple algorithm patterns with fallback implementations, enhanced BST validation to fix multi-operation issues, fixed traversal consistency where results match actual tree structure
+- `backend/src/services/executors.js` - Deterministic executors for multiple algorithm patterns with fallback implementations, enhanced BST validation to fix multi-operation issues, fixed traversal consistency where results match actual tree structure, added path generation for search/insert/remove operations
 - `frontend/src/components/landing/LandingPage.jsx` - Complete landing page with multiple sections
 - `frontend/src/components/entities/ArrayEntity.jsx`, `TreeEntity.jsx`, `StackEntity.jsx`, `QueueEntity.jsx`, etc. - Specialized visualization components
 - `frontend/src/components/VisualCanvas.jsx` - Entity renderer for multiple data structures
 - `frontend/src/pages/VisualizerPage.jsx` - Main visualization page with comprehensive UI
 - `frontend/src/components/ProblemInput.jsx` - Enhanced input component with example functionality
-- `frontend/src/components/entities/TreeEntity.jsx` - Updated with animated path highlighting from root to target node for search/insert/remove operations
+- `frontend/src/components/entities/TreeEntity.jsx` - Updated with animated path highlighting from root to target node for search/insert/remove operations, refined animation timing for better visual flow, slowed down animation speed to VisuAlgo-like pace
 - `frontend/src/components/entities/TreeEntity.css` - Updated with clean path/node highlighting animations, removed expanding/circle contrast effects
 
 ### Pending TODOs:
@@ -97,6 +97,8 @@
 - **BST Integrity**: Enhanced BST validation ensures tree properties are maintained during multi-operation sequences
 - **Traversal Consistency**: Results of tree traversals now match the actual tree structure, preventing phantom nodes
 - **Animated Path Highlighting**: Smooth path animations from root to target node for search, insert, and remove operations
+- **VisuAlgo-like Speed**: Slower, educational-focused animation speed for better understanding
+- **Path Generation**: Automatic path calculation for tree operations when not provided by LLM
 - **Comprehensive Examples**: Built-in examples for each algorithm pattern in the Ollama adapter
 - **Deterministic Fallbacks**: Executor system provides reliable visualizations when LLM output is insufficient
 

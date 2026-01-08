@@ -1994,20 +1994,81 @@ function treeExecutor(step, previousTree, queryOperations = []) {
         validated.result = [...new Set(validated.result)];
     }
 
-    // For tree traversals, ensure result matches the actual traversal of the tree
-    if (Array.isArray(validated.result) && Array.isArray(validated.tree) && validated.tree.length > 0) {
-        // Check if this is a traversal operation based on title/description
+    // For tree operations, generate path information for visualization
+    if (Array.isArray(validated.tree) && validated.tree.length > 0) {
         const title = (validated.title || '').toLowerCase();
         const description = (validated.description || '').toLowerCase();
-        const isTraversal = title.includes('traversal') ||
-                          title.includes('visit') ||
-                          description.includes('traversal') ||
-                          description.includes('visit') ||
-                          title.includes('inorder') ||
-                          title.includes('preorder') ||
-                          title.includes('postorder');
 
-        if (isTraversal) {
+        // Check if this is a search, insert, or remove operation that needs path highlighting
+        const isSearchOperation = title.includes('search') || title.includes('find') || description.includes('search') || description.includes('find');
+        const isInsertOperation = title.includes('insert') || description.includes('insert');
+        const isRemoveOperation = title.includes('remove') || title.includes('delete') || description.includes('remove') || description.includes('delete');
+        const isTraversalOperation = title.includes('traversal') ||
+                                  title.includes('visit') ||
+                                  description.includes('traversal') ||
+                                  description.includes('visit') ||
+                                  title.includes('inorder') ||
+                                  title.includes('preorder') ||
+                                  title.includes('postorder');
+
+        // Generate path for search operations
+        if (isSearchOperation) {
+            const searchMatch = title.match(/search[:\s]+(\d+)/i) || description.match(/search[:\s]+(\d+)/i) ||
+                               title.match(/find[:\s]+(\d+)/i) || description.match(/find[:\s]+(\d+)/i);
+            if (searchMatch) {
+                const searchValue = parseInt(searchMatch[1]);
+                const treeRoot = levelOrderToTree(validated.tree);
+                if (treeRoot) {
+                    const path = findPathToNode(treeRoot, searchValue);
+                    if (path && path.length > 0) {
+                        // Add path to meta if not already present
+                        if (!validated.path) {
+                            validated.path = path;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Generate path for insert operations (path to where the node would be inserted)
+        if (isInsertOperation) {
+            const insertMatch = title.match(/insert[:\s]+(\d+)/i) || description.match(/insert[:\s]+(\d+)/i);
+            if (insertMatch) {
+                const insertValue = parseInt(insertMatch[1]);
+                const treeRoot = levelOrderToTree(validated.tree);
+                if (treeRoot) {
+                    const path = findPathToInsert(treeRoot, insertValue);
+                    if (path && path.length > 0) {
+                        // Add path to meta if not already present
+                        if (!validated.path) {
+                            validated.path = path;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Generate path for remove operations
+        if (isRemoveOperation) {
+            const removeMatch = title.match(/remove[:\s]+(\d+)/i) || description.match(/remove[:\s]+(\d+)/i) ||
+                               title.match(/delete[:\s]+(\d+)/i) || description.match(/delete[:\s]+(\d+)/i);
+            if (removeMatch) {
+                const removeValue = parseInt(removeMatch[1]);
+                const treeRoot = levelOrderToTree(validated.tree);
+                if (treeRoot) {
+                    const path = findPathToNode(treeRoot, removeValue);
+                    if (path && path.length > 0) {
+                        // Add path to meta if not already present
+                        if (!validated.path) {
+                            validated.path = path;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Handle traversal operations
+        if (isTraversalOperation) {
             // Get the actual inorder/preorder/postorder from the current tree
             const actualTreeRoot = levelOrderToTree(validated.tree);
             if (actualTreeRoot) {
@@ -2041,6 +2102,72 @@ function treeExecutor(step, previousTree, queryOperations = []) {
     }
 
     return validated;
+}
+
+/**
+ * Find path from root to a specific node value
+ */
+function findPathToNode(root, targetValue) {
+    const path = [];
+
+    function dfs(node, currentPath) {
+        if (!node) return false;
+
+        currentPath.push(node.value);
+
+        if (node.value === targetValue) {
+            path.push(...currentPath);
+            return true;
+        }
+
+        if (dfs(node.left, currentPath) || dfs(node.right, currentPath)) {
+            return true;
+        }
+
+        currentPath.pop();
+        return false;
+    }
+
+    dfs(root, []);
+    return path;
+}
+
+/**
+ * Find path where a new value would be inserted
+ */
+function findPathToInsert(root, insertValue) {
+    const path = [];
+
+    function dfs(node, currentPath) {
+        if (!node) {
+            // If we reach a null node, this is where we'd insert
+            return true;
+        }
+
+        currentPath.push(node.value);
+
+        if (insertValue === node.value) {
+            // Value already exists, return path to this node
+            path.push(...currentPath);
+            return true;
+        } else if (insertValue < node.value) {
+            if (dfs(node.left, currentPath)) {
+                if (path.length === 0) path.push(...currentPath);
+                return true;
+            }
+        } else {
+            if (dfs(node.right, currentPath)) {
+                if (path.length === 0) path.push(...currentPath);
+                return true;
+            }
+        }
+
+        currentPath.pop();
+        return false;
+    }
+
+    dfs(root, []);
+    return path;
 }
 
 /**

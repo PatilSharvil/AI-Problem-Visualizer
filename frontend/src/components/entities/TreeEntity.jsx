@@ -115,9 +115,9 @@ function TreeEntity({ id, data, meta, actions, className }) {
                     clearTimeout(pathAnimationRef.current);
                 }
 
-                // Animate path progress from 0 to 1 over 1 second per node approximately
-                const totalDuration = Math.min(pathNodes.length * 200, 1000); // 200ms per node, max 1000ms
-                const steps = 20; // Number of animation steps
+                // Animate path progress with VisuAlgo-like speed (slower and more educational)
+                const totalDuration = pathNodes.length * 600; // 600ms per node for clear visualization
+                const steps = pathNodes.length * 6; // More steps for smoother animation (6 per node)
                 const stepDuration = totalDuration / steps;
 
                 let step = 0;
@@ -205,7 +205,7 @@ function TreeEntity({ id, data, meta, actions, className }) {
                 // Calculate what portion of the path should be highlighted based on progress
                 const edgeIndex = i;
                 const totalEdges = pathNodes.length - 1;
-                const edgeProgressThreshold = (edgeIndex + 1) / totalEdges;
+                const edgeProgressThreshold = edgeIndex / totalEdges;
 
                 return animState.pathProgress >= edgeProgressThreshold;
             }
@@ -230,7 +230,7 @@ function TreeEntity({ id, data, meta, actions, className }) {
             const nodeIndexInPath = animState.pathNodes.indexOf(node.value);
             if (nodeIndexInPath >= 0) {
                 const totalNodes = animState.pathNodes.length;
-                const nodeProgressThreshold = (nodeIndexInPath + 1) / totalNodes;
+                const nodeProgressThreshold = nodeIndexInPath / totalNodes;
 
                 if (animState.pathProgress >= nodeProgressThreshold) {
                     classes.push('in-path');
