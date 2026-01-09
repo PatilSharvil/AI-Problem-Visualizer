@@ -826,11 +826,19 @@ function universalStackExecutor(llmOutput, query) {
 
     console.log(`[Universal Stack Executor] Processing stack query: "${query.substring(0, 50)}..."`);
 
-    // If we have LLM output, validate and correct it
+    // If we have LLM output, validate and correct it only if it appears to be invalid
     if (llmOutput && llmOutput.steps && Array.isArray(llmOutput.steps) && llmOutput.steps.length > 0) {
-        const correctedOutput = validateAndCorrectStackOutput(llmOutput, query);
-        if (correctedOutput) {
-            return correctedOutput;
+        // Check if the LLM output already looks valid for stack operations
+        const llmOutputLooksValid = checkIfLlmOutputIsValidForQuery(llmOutput, query);
+
+        if (!llmOutputLooksValid) {
+            const correctedOutput = validateAndCorrectStackOutput(llmOutput, query);
+            if (correctedOutput) {
+                return correctedOutput;
+            }
+        } else {
+            // LLM output looks valid, return as is but still apply minimal corrections
+            return llmOutput;
         }
     }
 
@@ -1105,11 +1113,19 @@ function universalQueueExecutor(llmOutput, query) {
 
     console.log(`[Universal Queue Executor] Processing: "${query.substring(0, 50)}..."`);
 
-    // If we have LLM output, validate and correct it
+    // If we have LLM output, validate and correct it only if it appears to be invalid
     if (llmOutput && llmOutput.steps && Array.isArray(llmOutput.steps) && llmOutput.steps.length > 0) {
-        const correctedOutput = validateAndCorrectQueueOutput(llmOutput, query);
-        if (correctedOutput) {
-            return correctedOutput;
+        // Check if the LLM output already looks valid for queue operations
+        const llmOutputLooksValid = checkIfLlmOutputIsValidForQuery(llmOutput, query);
+
+        if (!llmOutputLooksValid) {
+            const correctedOutput = validateAndCorrectQueueOutput(llmOutput, query);
+            if (correctedOutput) {
+                return correctedOutput;
+            }
+        } else {
+            // LLM output looks valid, return as is but still apply minimal corrections
+            return llmOutput;
         }
     }
 
@@ -1270,11 +1286,19 @@ function universalArrayExecutor(llmOutput, query) {
 
     console.log(`[Universal Array Executor] Processing: "${query.substring(0, 50)}..."`);
 
-    // If we have LLM output, validate and correct it
+    // If we have LLM output, validate and correct it only if it appears to be invalid
     if (llmOutput && llmOutput.steps && Array.isArray(llmOutput.steps) && llmOutput.steps.length > 0) {
-        const correctedOutput = validateAndCorrectArrayOutput(llmOutput, query);
-        if (correctedOutput) {
-            return correctedOutput;
+        // Check if the LLM output already looks valid for array operations
+        const llmOutputLooksValid = checkIfLlmOutputIsValidForQuery(llmOutput, query);
+
+        if (!llmOutputLooksValid) {
+            const correctedOutput = validateAndCorrectArrayOutput(llmOutput, query);
+            if (correctedOutput) {
+                return correctedOutput;
+            }
+        } else {
+            // LLM output looks valid, return as is but still apply minimal corrections
+            return llmOutput;
         }
     }
 
@@ -2557,11 +2581,19 @@ function universalTreeExecutor(llmOutput, query) {
 
     console.log(`[Universal Tree Executor] Processing: "${query.substring(0, 50)}..."`);
 
-    // If we have LLM output, validate and correct it
+    // If we have LLM output, validate and correct it only if it appears to be invalid
     if (llmOutput && llmOutput.steps && Array.isArray(llmOutput.steps) && llmOutput.steps.length > 0) {
-        const correctedOutput = validateAndCorrectTreeOutput(llmOutput, query);
-        if (correctedOutput) {
-            return correctedOutput;
+        // Check if the LLM output already looks valid for tree operations
+        const llmOutputLooksValid = checkIfLlmOutputIsValidForQuery(llmOutput, query);
+
+        if (!llmOutputLooksValid) {
+            const correctedOutput = validateAndCorrectTreeOutput(llmOutput, query);
+            if (correctedOutput) {
+                return correctedOutput;
+            }
+        } else {
+            // LLM output looks valid, return as is but still apply minimal corrections
+            return llmOutput;
         }
     }
 
@@ -2621,6 +2653,57 @@ function checkIfTreeQuery(queryLower) {
 }
 
 /**
+ * Check if LLM output appears valid for the given query
+ * This prevents executors from overriding correct LLM responses
+ */
+function checkIfLlmOutputIsValidForQuery(llmOutput, query) {
+    if (!llmOutput || !Array.isArray(llmOutput.steps) || llmOutput.steps.length === 0) {
+        return false;
+    }
+
+    const queryLower = query.toLowerCase();
+
+    // Check if the steps seem to match the query intent
+    const stepTitles = llmOutput.steps.map(step => (step.title || '').toLowerCase());
+    const stepDescriptions = llmOutput.steps.map(step => (step.description || '').toLowerCase());
+    const allText = (stepTitles.join(' ') + ' ' + stepDescriptions.join(' ')).toLowerCase();
+
+    // For binary search queries
+    if (queryLower.includes('binary search')) {
+        return allText.includes('binary') || allText.includes('search') ||
+               allText.includes('mid') || allText.includes('found') ||
+               allText.includes('left') || allText.includes('right');
+    }
+
+    // For tree traversal queries
+    if (queryLower.includes('inorder') || queryLower.includes('preorder') || queryLower.includes('postorder')) {
+        return allText.includes('visit') || allText.includes('travers') ||
+               allText.includes('inorder') || allText.includes('preorder') || allText.includes('postorder');
+    }
+
+    // For insert/remove operations
+    if (queryLower.includes('insert') || queryLower.includes('remove') || queryLower.includes('delete')) {
+        return allText.includes('insert') || allText.includes('remove') ||
+               allText.includes('delete') || allText.includes('add');
+    }
+
+    // For sorting operations
+    if (queryLower.includes('sort')) {
+        return allText.includes('sort') || allText.includes('compare') ||
+               allText.includes('swap') || allText.includes('pivot');
+    }
+
+    // For general array operations
+    if (queryLower.includes('find') || queryLower.includes('max') || queryLower.includes('min')) {
+        return allText.includes('find') || allText.includes('max') ||
+               allText.includes('min') || allText.includes('search');
+    }
+
+    // If we can't determine the intent clearly, be conservative and let validation run
+    return false;
+}
+
+/**
  * Validates and corrects LLM output for tree problems
  */
 function validateAndCorrectTreeOutput(llmOutput, query) {
@@ -2646,6 +2729,10 @@ function validateAndCorrectTreeOutput(llmOutput, query) {
         let isValid = true;
         const treeStructure = output.structures.find(s => s.type === 'tree' || s.id === 'tree');
         let currentTree = treeStructure ? [...treeStructure.data] : [];
+
+        // Check if the query contains multiple operations to better handle sequence
+        const queryLower = query.toLowerCase();
+        const hasMultiOps = hasMultipleTreeOperations(queryLower);
 
         for (let i = 0; i < output.steps.length; i++) {
             const step = output.steps[i];
@@ -2681,6 +2768,15 @@ function validateAndCorrectTreeOutput(llmOutput, query) {
                 if (!isNaN(valueToRemove)) {
                     currentTree = bstRemove(currentTree, valueToRemove);
                     console.log(`[BST Validator] Removing ${valueToRemove}, new tree:`, currentTree.filter(v => v !== null));
+                }
+            }
+
+            // For multi-operation sequences, ensure tree consistency across steps
+            if (hasMultiOps) {
+                // If the step has a tree that differs significantly from our calculated currentTree,
+                // use the step's tree as the basis for the next operation
+                if (step.tree && Array.isArray(step.tree)) {
+                    currentTree = [...step.tree];
                 }
             }
 
@@ -2731,8 +2827,13 @@ function generateTreeFallback(query) {
     const treeData = parseTreeFromQuery(query);
     let tree = treeData || [4, 2, 6, 1, 3, 5, 7]; // default tree
 
-    // Detect operation type from query
+    // Detect operation type from query with improved parsing
     const queryLower = query.toLowerCase();
+
+    // Check for multiple operations in sequence first
+    if (hasMultipleTreeOperations(queryLower)) {
+        return generateMultiOperationSequence(tree, query, queryLower);
+    }
 
     if (queryLower.includes('inorder')) {
         return generateInorderTraversal(tree, query);
@@ -2750,6 +2851,201 @@ function generateTreeFallback(query) {
         // Default: simple traversal
         return generateInorderTraversal(tree, query);
     }
+}
+
+/**
+ * Check if query contains multiple tree operations
+ */
+function hasMultipleTreeOperations(queryLower) {
+    // Check for patterns like "insert X then remove Y" or "perform operations"
+    const multiOpPatterns = [
+        /insert.*then.*remove/,
+        /remove.*then.*insert/,
+        /insert.*and.*remove/,
+        /remove.*and.*insert/,
+        /perform.*operations/,
+        /operations.*on.*tree/,
+        /create.*tree.*with.*insert/,
+        /first.*insert.*then.*remove/,
+        /after.*insert.*remove/,
+        /followed.*by.*remove/,
+        /and.*then.*traverse/,
+        /insert.*\d+.*\d+.*\d+/,  // Multiple numbers after insert
+        /remove.*\d+.*\d+/        // Multiple numbers after remove
+    ];
+
+    return multiOpPatterns.some(pattern => pattern.test(queryLower));
+}
+
+/**
+ * Generate sequence of multiple operations
+ */
+function generateMultiOperationSequence(tree, query, queryLower) {
+    console.log('[Tree] Generating multi-operation sequence');
+
+    const steps = [];
+    let currentTree = [...tree];
+
+    // Add initial state
+    steps.push({
+        title: 'Initial Tree',
+        description: `Starting with tree: [${currentTree.filter(v => v !== null && v !== undefined).join(', ')}]`,
+        tree: [...currentTree],
+        result: []
+    });
+
+    // Parse operations from the query
+    const operations = parseTreeOperationsFromQuery(query);
+
+    if (operations.length > 0) {
+        for (const op of operations) {
+            if (op.type === 'insert') {
+                const newTree = bstInsert(currentTree, op.value);
+                steps.push({
+                    title: `Insert ${op.value}`,
+                    description: `Inserting ${op.value} into the tree`,
+                    tree: [...newTree],
+                    result: [op.value]
+                });
+                currentTree = [...newTree];
+            } else if (op.type === 'remove' || op.type === 'delete') {
+                const newTree = bstRemove(currentTree, op.value);
+                steps.push({
+                    title: `Remove ${op.value}`,
+                    description: `Removing ${op.value} from the tree`,
+                    tree: [...newTree],
+                    result: [op.value]
+                });
+                currentTree = [...newTree];
+            } else if (op.type === 'traverse') {
+                // Perform traversal based on type
+                const root = levelOrderToTree(currentTree);
+                let traversalResult = [];
+
+                if (op.traverseType === 'inorder') {
+                    traversalResult = getInorderTraversal(root);
+                } else if (op.traverseType === 'preorder') {
+                    traversalResult = getPreorderTraversal(root);
+                } else if (op.traverseType === 'postorder') {
+                    traversalResult = getPostorderTraversal(root);
+                }
+
+                steps.push({
+                    title: `${op.traverseType.charAt(0).toUpperCase() + op.traverseType.slice(1)} Traversal`,
+                    description: `Traversing the tree: [${traversalResult.join(', ')}]`,
+                    tree: [...currentTree],
+                    result: [...traversalResult]
+                });
+            }
+        }
+    } else {
+        // If we couldn't parse specific operations, try to extract them from text
+        const insertMatches = queryLower.match(/insert\s+(\d+(?:\s+\d+)*)/g);
+        if (insertMatches) {
+            for (const match of insertMatches) {
+                const numbers = match.replace('insert', '').trim().split(/\s+/).map(Number).filter(n => !isNaN(n));
+                for (const num of numbers) {
+                    const newTree = bstInsert(currentTree, num);
+                    steps.push({
+                        title: `Insert ${num}`,
+                        description: `Inserting ${num} into the tree`,
+                        tree: [...newTree],
+                        result: [num]
+                    });
+                    currentTree = [...newTree];
+                }
+            }
+        }
+
+        const removeMatches = queryLower.match(/remove\s+(\d+(?:\s+\d+)*)/g) || queryLower.match(/delete\s+(\d+(?:\s+\d+)*)/g);
+        if (removeMatches) {
+            for (const match of removeMatches) {
+                const numbers = match.replace(/remove|delete/, '').trim().split(/\s+/).map(Number).filter(n => !isNaN(n));
+                for (const num of numbers) {
+                    const newTree = bstRemove(currentTree, num);
+                    steps.push({
+                        title: `Remove ${num}`,
+                        description: `Removing ${num} from the tree`,
+                        tree: [...newTree],
+                        result: [num]
+                    });
+                    currentTree = [...newTree];
+                }
+            }
+        }
+
+        // Check for traversal at the end
+        if (queryLower.includes('traverse') || queryLower.includes('inorder') || queryLower.includes('preorder') || queryLower.includes('postorder')) {
+            const root = levelOrderToTree(currentTree);
+            let traversalType = 'inorder'; // default
+            if (queryLower.includes('preorder')) traversalType = 'preorder';
+            if (queryLower.includes('postorder')) traversalType = 'postorder';
+
+            let traversalResult = [];
+            if (traversalType === 'inorder') {
+                traversalResult = getInorderTraversal(root);
+            } else if (traversalType === 'preorder') {
+                traversalResult = getPreorderTraversal(root);
+            } else if (traversalType === 'postorder') {
+                traversalResult = getPostorderTraversal(root);
+            }
+
+            steps.push({
+                title: `${traversalType.charAt(0).toUpperCase() + traversalType.slice(1)} Traversal`,
+                description: `Traversing the tree: [${traversalResult.join(', ')}]`,
+                tree: [...currentTree],
+                result: [...traversalResult]
+            });
+        }
+    }
+
+    return {
+        structures: [{ id: 'tree', type: 'tree', label: 'BST', data: tree }],
+        steps
+    };
+}
+
+/**
+ * Parse tree operations from query text
+ */
+function parseTreeOperationsFromQuery(query) {
+    const operations = [];
+    const queryLower = query.toLowerCase();
+
+    // Extract insert operations
+    const insertRegex = /insert\s+(\d+(?:\s*,?\s*\d+)*)|add\s+(\d+(?:\s*,?\s*\d+)*)/g;
+    let match;
+    while ((match = insertRegex.exec(queryLower)) !== null) {
+        const numbersStr = match[1] || match[2];
+        if (numbersStr) {
+            const numbers = numbersStr.replace(/,/g, ' ').split(/\s+/).map(Number).filter(n => !isNaN(n));
+            for (const num of numbers) {
+                operations.push({ type: 'insert', value: num });
+            }
+        }
+    }
+
+    // Extract remove/delete operations
+    const removeRegex = /(remove|delete)\s+(\d+(?:\s*,?\s*\d+)*)/g;
+    while ((match = removeRegex.exec(queryLower)) !== null) {
+        const numbersStr = match[2];
+        if (numbersStr) {
+            const numbers = numbersStr.replace(/,/g, ' ').split(/\s+/).map(Number).filter(n => !isNaN(n));
+            for (const num of numbers) {
+                operations.push({ type: match[1], value: num });
+            }
+        }
+    }
+
+    // Extract traversal operations
+    if (queryLower.includes('traverse') || queryLower.includes('inorder') || queryLower.includes('preorder') || queryLower.includes('postorder')) {
+        let traverseType = 'inorder';
+        if (queryLower.includes('preorder')) traverseType = 'preorder';
+        if (queryLower.includes('postorder')) traverseType = 'postorder';
+        operations.push({ type: 'traverse', traverseType });
+    }
+
+    return operations;
 }
 
 /**

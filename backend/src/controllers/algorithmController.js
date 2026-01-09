@@ -2,17 +2,9 @@ const { llmOutputSchema } = require('../schemas/llmOutputSchema');
 const { LLMService } = require('../services/llmService');
 const { UniversalNormalizer } = require('../services/universalNormalizer');
 const { runExecutors, isExecutorsEnabled } = require('../services/executors');
-const fs = require('fs');
-const path = require('path');
 
 const llmService = new LLMService();
 const normalizer = new UniversalNormalizer();
-
-// Create logs directory
-const logsDir = path.join(__dirname, '../../logs');
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
-}
 
 const classifyAlgorithm = async (req, res) => {
   try {
@@ -62,16 +54,6 @@ const classifyAlgorithm = async (req, res) => {
     console.log(JSON.stringify(llmOutput, null, 2));
     console.log('----------------------------------------');
 
-    // Save to file for debugging
-    const timestamp = Date.now();
-    const logFile = path.join(logsDir, `llm_output_${timestamp}.json`);
-    fs.writeFileSync(logFile, JSON.stringify({
-      timestamp: new Date().toISOString(),
-      problem: problemStatement,
-      llmOutput: llmOutput
-    }, null, 2));
-    console.log(`LLM output saved to: ${logFile}`);
-
     // Run executors (optional validation layer)
     const validatedOutput = runExecutors(llmOutput, problemStatement);
     console.log('\n=== EXECUTOR VALIDATION ===');
@@ -115,15 +97,6 @@ const classifyAlgorithm = async (req, res) => {
       console.log('Frame 0 entities:', frames[0].entities?.map(e => `${e.id}(${e.type})`));
       console.log('Frame 0 actions:', frames[0].actions?.length || 0);
     }
-
-    // Save frames to file too
-    const framesFile = path.join(logsDir, `frames_${timestamp}.json`);
-    fs.writeFileSync(framesFile, JSON.stringify({
-      timestamp: new Date().toISOString(),
-      problem: problemStatement,
-      frames: frames
-    }, null, 2));
-    console.log(`Frames saved to: ${framesFile}`);
 
     console.log('========================================\n');
 
