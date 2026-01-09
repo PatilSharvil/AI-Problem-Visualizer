@@ -97,36 +97,37 @@ class OpenRouterAdapter extends LLMAdapterInterface {
     }
 
     buildPrompt(problem) {
-        // Detect problem type
-        const problemLower = problem.toLowerCase();
-        const hasTree = problemLower.includes('tree') || problemLower.includes('bst');
-        const hasStack = problemLower.includes('stack') || problemLower.includes('parenthes');
-        const hasQueue = problemLower.includes('queue') || problemLower.includes('bfs');
+        return `You are an ALGORITHM VISUALIZATION ENGINE. Generate step-by-step visualization JSON ONLY.
 
-        let structureType = 'array';
-        if (hasTree) structureType = 'tree';
-        else if (hasStack) structureType = 'stack';
-        else if (hasQueue) structureType = 'queue';
-
-        return `You are an algorithm visualization engine. Generate step-by-step JSON visualization.
-
-Problem: ${problem}
-
-RULES:
-1. Return ONLY valid JSON, no extra text or markdown
-2. Generate one step per operation
-3. Use the exact values from the problem
-
-Return this structure:
+=== STRICT OUTPUT FORMAT ===
 {
-  "structures": [{"id": "${structureType === 'tree' ? 'tree' : 'arr'}", "type": "${structureType}", "label": "${structureType.toUpperCase()}", "data": [values]}],
+  "structures": [{"id": "arr", "type": "array", "label": "Array", "data": [INPUT_ARRAY]}],
   "steps": [
-    {"title": "Step 1", "description": "description", "${structureType}": [current_state], "highlight": [indices]},
-    ...more steps...
+    {"title": "Step Title", "description": "What happens", "array": [FULL_ARRAY], "pointers": {"left": 0, "right": 5}, "highlight": [INDICES]}
   ]
 }
 
-Return ONLY the JSON object, nothing else. Do not include any thinking or explanation.`;
+=== RULES ===
+1. EVERY step MUST have "array" field with the FULL array
+2. Use "pointers" for indices (left, right, mid, i, j)
+3. Use "highlight" for indices being processed
+4. Generate 3-10 steps
+5. Return ONLY JSON, no text/code/explanations
+
+=== EXAMPLE ===
+Problem: Binary search for 5 in [1,2,3,4,5,6,7]
+{
+  "structures": [{"id": "arr", "type": "array", "label": "Array", "data": [1,2,3,4,5,6,7]}],
+  "steps": [
+    {"title": "Check mid=3", "description": "arr[3]=4 < 5", "array": [1,2,3,4,5,6,7], "pointers": {"left": 0, "right": 6, "mid": 3}, "highlight": [3]},
+    {"title": "Found at 4", "description": "arr[4]=5", "array": [1,2,3,4,5,6,7], "pointers": {"mid": 4}, "highlight": [4], "result": [5]}
+  ]
+}
+
+=== YOUR TASK ===
+Problem: ${problem}
+
+Return ONLY the JSON object. No thinking, no code, no explanations.`;
     }
 }
 
