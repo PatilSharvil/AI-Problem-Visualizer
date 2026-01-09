@@ -11,5 +11,9 @@ export default defineConfig({
         changeOrigin: true,
       }
     }
+  },
+  // Define environment variables that will be available in the frontend
+  define: {
+    'process.env': process.env
   }
 })

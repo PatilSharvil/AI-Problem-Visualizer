@@ -45,7 +45,9 @@ function VisualizerPage() {
         setHasStarted(true);
 
         try {
-            const response = await fetch('/api/classify', {
+            // Use environment variable for backend URL, fallback to relative path for development
+            const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
+            const response = await fetch(`${backendUrl}/api/classify`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

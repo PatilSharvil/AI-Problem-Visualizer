@@ -1,13 +1,27 @@
 /**
  * API Key Manager - Handles multi-provider API key rotation
- * 
+ *
  * Supports automatic key rotation within providers and failover between providers.
  * Provider order: Gemini -> DeepSeek -> OpenAI -> Groq -> Together AI
+ * When LOCAL_MODEL=true, only Ollama is used and cloud providers are ignored.
  */
 
 class APIKeyManager {
   constructor() {
-    // Provider order (first to last)
+    // Check if using local model
+    this.isLocalModel = process.env.LOCAL_MODEL === 'true';
+
+    if (this.isLocalModel) {
+      // When using local model, no cloud providers are initialized
+      this.providerOrder = [];
+      this.keys = {};
+      this.currentKeyIndex = {};
+      this.currentProviderIndex = -1;
+      console.log('[API Key Manager] Local model mode enabled - cloud providers disabled');
+      return;
+    }
+
+    // Provider order (first to last) - only when not using local model
     this.providerOrder = ['gemini', 'openai', 'deepseek', 'groq', 'togetherai'];
 
     // Parse keys from environment variables (comma-separated)
@@ -63,6 +77,9 @@ class APIKeyManager {
    * Get current provider name
    */
   getCurrentProvider() {
+    if (this.isLocalModel) {
+      return 'ollama'; // Return ollama when using local model
+    }
     return this.providerOrder[this.currentProviderIndex];
   }
 
@@ -70,6 +87,10 @@ class APIKeyManager {
    * Get current API key for the current provider
    */
   getCurrentKey() {
+    if (this.isLocalModel) {
+      return 'local'; // Return a placeholder when using local model
+    }
+
     const provider = this.getCurrentProvider();
     const keys = this.keys[provider];
     if (!keys || keys.length === 0) return null;
@@ -82,6 +103,10 @@ class APIKeyManager {
    * Check if a key is currently in cooldown
    */
   _isKeyInCooldown(provider, keyIndex) {
+    if (this.isLocalModel) {
+      return false; // No cooldown when using local model
+    }
+
     const keyId = `${provider}:${keyIndex}`;
     const cooldownUntil = this.exhaustedKeys.get(keyId);
     if (!cooldownUntil) return false;
@@ -98,6 +123,11 @@ class APIKeyManager {
    * Mark current key as exhausted and rotate to next
    */
   rotateKey() {
+    if (this.isLocalModel) {
+      // When using local model, rotation is not needed
+      return { success: false, error: 'Local model mode - no key rotation needed' };
+    }
+
     const provider = this.getCurrentProvider();
     const currentIdx = this.currentKeyIndex[provider];
 
@@ -130,6 +160,11 @@ class APIKeyManager {
    * Switch to the next available provider
    */
   switchToNextProvider() {
+    if (this.isLocalModel) {
+      // When using local model, provider switching is not needed
+      return { success: false, error: 'Local model mode - no provider switching needed' };
+    }
+
     const startIdx = this.currentProviderIndex;
     let nextIdx = (startIdx + 1) % this.providerOrder.length;
 
@@ -159,6 +194,10 @@ class APIKeyManager {
    * Check if current key should be rotated based on error
    */
   shouldRotate(error) {
+    if (this.isLocalModel) {
+      return false; // No rotation needed when using local model
+    }
+
     if (!error) return false;
 
     const errorMessage = error.message || error.toString();
@@ -183,6 +222,16 @@ class APIKeyManager {
    * Get status info for logging
    */
   getStatus() {
+    if (this.isLocalModel) {
+      return {
+        provider: 'ollama',
+        keyIndex: 1,
+        totalKeys: 1,
+        exhaustedCount: 0,
+        summary: 'ollama (local model)'
+      };
+    }
+
     const provider = this.getCurrentProvider();
     const keyIndex = this.currentKeyIndex[provider];
     const totalKeys = this.keys[provider].length;

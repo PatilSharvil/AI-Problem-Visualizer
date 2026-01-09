@@ -4,12 +4,16 @@ const { DeepSeekAdapter } = require('./deepseekAdapter');
 const { OpenAIAdapter } = require('./openaiAdapter');
 const { GroqAdapter } = require('./groqAdapter');
 const { TogetherAdapter } = require('./togetherAdapter');
+const { OllamaAdapter } = require('./ollamaAdapter'); // Import Ollama adapter
 
 class LLMService {
   constructor() {
     this.keyManager = getAPIKeyManager();
     this.adapters = {};
     this.maxRetries = 10; // Maximum retries across all keys/providers
+
+    // Check if using local model
+    this.isLocalModel = process.env.LOCAL_MODEL === 'true';
   }
 
   /**
@@ -17,6 +21,9 @@ class LLMService {
    */
   _createAdapter(provider, apiKey) {
     switch (provider) {
+      case 'ollama':
+        // When using local model, always return Ollama adapter
+        return new OllamaAdapter(process.env.OLLAMA_MODEL || 'qwen2.5-coder:7b-instruct');
       case 'gemini':
         return new GeminiAdapter(apiKey);
       case 'deepseek':
@@ -39,7 +46,7 @@ class LLMService {
     const provider = this.keyManager.getCurrentProvider();
     const apiKey = this.keyManager.getCurrentKey();
 
-    if (!apiKey) {
+    if (!apiKey && !this.isLocalModel) {
       throw new Error('No API key available');
     }
 
@@ -66,8 +73,8 @@ class LLMService {
         lastError = error;
         console.error(`[LLM Service] Error: ${error.message}`);
 
-        // Check if we should rotate keys
-        if (this.keyManager.shouldRotate(error)) {
+        // Check if we should rotate keys (only if not using local model)
+        if (!this.isLocalModel && this.keyManager.shouldRotate(error)) {
           console.log('[LLM Service] Rate limit detected, rotating key...');
           const rotateResult = this.keyManager.rotateKey();
 
