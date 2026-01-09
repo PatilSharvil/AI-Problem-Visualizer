@@ -33,6 +33,16 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// Keep-alive endpoint for cron jobs
+app.get('/keep-alive', (req, res) => {
+  console.log(`[KEEP-ALIVE] Server pinged at ${new Date().toISOString()}`);
+  res.json({
+    status: 'Awake',
+    message: 'Server is active and ready for requests',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);

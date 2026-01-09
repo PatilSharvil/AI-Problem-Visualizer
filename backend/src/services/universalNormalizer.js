@@ -31,7 +31,23 @@ class UniversalNormalizer {
 
         // Determine expected structure type based on query keywords
         let forceType = null;
-        if (queryLower.includes('binary search') ||
+
+        // Check if this is a tree query first to avoid incorrect array forcing
+        // Using a simple pattern check to avoid circular dependency
+        const isTreeRelated = queryLower.includes('tree') ||
+                             queryLower.includes('bst') ||
+                             queryLower.includes('binary search tree') ||
+                             queryLower.includes('binary tree') ||
+                             queryLower.includes('inorder') ||
+                             queryLower.includes('preorder') ||
+                             queryLower.includes('postorder') ||
+                             queryLower.includes('traversal') ||
+                             (queryLower.includes('insert') && (queryLower.includes('tree') || queryLower.includes('bst'))) ||
+                             (queryLower.includes('remove') && (queryLower.includes('tree') || queryLower.includes('bst'))) ||
+                             (queryLower.includes('delete') && (queryLower.includes('tree') || queryLower.includes('bst')));
+
+        if (!isTreeRelated && (
+            queryLower.includes('binary search') ||
             queryLower.includes('bubble sort') ||
             queryLower.includes('selection sort') ||
             queryLower.includes('quick sort') ||
@@ -39,7 +55,7 @@ class UniversalNormalizer {
             queryLower.includes('two pointer') ||
             queryLower.includes('sliding window') ||
             queryLower.includes('max sum') ||
-            queryLower.includes('subarray')) {
+            queryLower.includes('subarray'))) {
             forceType = 'array';
         }
 

@@ -67,6 +67,14 @@ function runExecutors(llmOutput, originalProblem = '') {
         return stackOpsResult;
     }
 
+    // UNIVERSAL TREE EXECUTOR - handles any tree-related query FIRST (higher priority)
+    // Validates LLM output and provides deterministic fallback
+    const universalTreeResult = universalTreeExecutor(llmOutput, originalProblem);
+    if (universalTreeResult) {
+        console.log('[Executor] Using UNIVERSAL tree executor - validated/corrected output');
+        return universalTreeResult;
+    }
+
     // UNIVERSAL STACK EXECUTOR - catches any remaining stack queries
     // Validates LLM output and provides deterministic fallback
     const universalStackResult = universalStackExecutor(llmOutput, originalProblem);
@@ -132,14 +140,6 @@ function runExecutors(llmOutput, originalProblem = '') {
     if (universalArrayResult) {
         console.log('[Executor] Using UNIVERSAL array executor - validated/corrected output');
         return universalArrayResult;
-    }
-
-    // UNIVERSAL TREE EXECUTOR - handles any tree-related query
-    // Validates LLM output and provides deterministic fallback
-    const universalTreeResult = universalTreeExecutor(llmOutput, originalProblem);
-    if (universalTreeResult) {
-        console.log('[Executor] Using UNIVERSAL tree executor - validated/corrected output');
-        return universalTreeResult;
     }
 
     // FINAL FALLBACK: If LLM failed and no specific deterministic match, 
@@ -1240,20 +1240,31 @@ function universalArrayExecutor(llmOutput, query) {
     const queryLower = query.toLowerCase();
 
     // Check if this is an array-related query
+    // But exclude tree-related queries to avoid conflicts
+    const isTreeRelated = checkIfTreeQuery(queryLower);
+    if (isTreeRelated) {
+        return null; // Let tree executor handle it
+    }
+
     const isArrayQuery =
         queryLower.includes('array') ||
         queryLower.includes('subarray') ||
         queryLower.includes('subarrays') ||
         queryLower.includes('element') ||
         queryLower.includes('index') ||
-        queryLower.includes('traverse') ||
-        queryLower.includes('find') ||
+        queryLower.includes('traverse') &&
+            !(queryLower.includes('tree') || queryLower.includes('bst')) || // Exclude tree traversals
+        queryLower.includes('find') &&
+            !(queryLower.includes('tree') || queryLower.includes('bst')) || // Exclude tree searches
         queryLower.includes('sum') ||
         queryLower.includes('max') ||
         queryLower.includes('min') ||
         queryLower.includes('target') ||
         queryLower.includes('pair') ||
-        /\[[0-9,\s\-]+\]/.test(query); // Has array literal
+        queryLower.includes('sort') &&
+            !(queryLower.includes('tree') || queryLower.includes('bst')) || // Exclude tree sorts
+        /\[[0-9,\s\-]+\]/.test(query) && // Has array literal
+            !(queryLower.includes('tree') || queryLower.includes('bst') || queryLower.includes('binary')); // Exclude tree arrays
 
     if (!isArrayQuery) return null;
 
@@ -1961,35 +1972,42 @@ function treeExecutor(step, previousTree, queryOperations = []) {
             const description = (validated.description || '').toLowerCase();
             const fullText = title + ' ' + description;
 
-            // Detect insert operation - check title AND description
+            // Detect insert operation - check title AND description with improved patterns
             const insertMatch = fullText.match(/insert[:\s]+(\d+)/i) ||
+                fullText.match(/inserting[:\s]+(\d+)/i) ||
+                fullText.match(/add[:\s]+(\d+)/i) ||
                 title.match(/visit\s+(\d+)/i) && description.includes('insert');
 
             if (previousTree && Array.isArray(previousTree)) {
                 const treeValues = previousTree.filter(v => v !== null && v !== undefined);
 
-                // Check for insert
-                const insertDirectMatch = fullText.match(/insert[:\s]+(\d+)/i);
+                // Check for insert with improved pattern matching
+                const insertDirectMatch = fullText.match(/insert[:\s]+(\d+)/i) ||
+                                         fullText.match(/inserting[:\s]+(\d+)/i) ||
+                                         fullText.match(/add[:\s]+(\d+)/i);
                 if (insertDirectMatch) {
                     const valueToInsert = parseInt(insertDirectMatch[1]);
                     console.log(`[BST Executor] Detected INSERT ${valueToInsert}, previousTree has ${treeValues.length} nodes`);
 
                     if (!treeValues.includes(valueToInsert)) {
                         const correctTree = bstInsertHelper(previousTree, valueToInsert);
-                        console.log(`[BST Executor] After INSERT ${valueToInsert}:`, correctTree.slice(0, 10));
+                        console.log(`[BST Executor] After INSERT ${valueToInsert}:`, correctTree.filter(v => v !== null));
                         validated.tree = correctTree;
                     }
                 }
 
-                // Check for remove
-                const removeDirectMatch = fullText.match(/remove[:\s]+(\d+)/i);
+                // Check for remove with improved pattern matching
+                const removeDirectMatch = fullText.match(/remove[:\s]+(\d+)/i) ||
+                                         fullText.match(/removing[:\s]+(\d+)/i) ||
+                                         fullText.match(/delete[:\s]+(\d+)/i) ||
+                                         fullText.match(/deleting[:\s]+(\d+)/i);
                 if (removeDirectMatch) {
                     const valueToRemove = parseInt(removeDirectMatch[1]);
                     console.log(`[BST Executor] Detected REMOVE ${valueToRemove}, previousTree has ${treeValues.length} nodes`);
 
                     if (treeValues.includes(valueToRemove)) {
                         const correctTree = bstRemoveHelper(previousTree, valueToRemove);
-                        console.log(`[BST Executor] After REMOVE ${valueToRemove}:`, correctTree.slice(0, 10));
+                        console.log(`[BST Executor] After REMOVE ${valueToRemove}:`, correctTree.filter(v => v !== null));
                         validated.tree = correctTree;
                     } else {
                         console.log(`[BST Executor] Value ${valueToRemove} not in tree, skipping remove`);
@@ -2021,7 +2039,7 @@ function treeExecutor(step, previousTree, queryOperations = []) {
 
         // Check if this is a search, insert, or remove operation that needs path highlighting
         const isSearchOperation = title.includes('search') || title.includes('find') || description.includes('search') || description.includes('find');
-        const isInsertOperation = title.includes('insert') || description.includes('insert');
+        const isInsertOperation = title.includes('insert') || title.includes('inserting') || description.includes('insert') || description.includes('inserting');
         const isRemoveOperation = title.includes('remove') || title.includes('delete') || description.includes('remove') || description.includes('delete');
         const isTraversalOperation = title.includes('traversal') ||
             title.includes('visit') ||
@@ -2052,7 +2070,8 @@ function treeExecutor(step, previousTree, queryOperations = []) {
 
         // Generate path for insert operations (path to where the node would be inserted)
         if (isInsertOperation) {
-            const insertMatch = title.match(/insert[:\s]+(\d+)/i) || description.match(/insert[:\s]+(\d+)/i);
+            const insertMatch = title.match(/insert[:\s]+(\d+)/i) || description.match(/insert[:\s]+(\d+)/i) ||
+                               title.match(/inserting[:\s]+(\d+)/i) || description.match(/inserting[:\s]+(\d+)/i);
             if (insertMatch) {
                 const insertValue = parseInt(insertMatch[1]);
                 const treeRoot = levelOrderToTree(validated.tree);
@@ -2071,7 +2090,8 @@ function treeExecutor(step, previousTree, queryOperations = []) {
         // Generate path for remove operations
         if (isRemoveOperation) {
             const removeMatch = title.match(/remove[:\s]+(\d+)/i) || description.match(/remove[:\s]+(\d+)/i) ||
-                title.match(/delete[:\s]+(\d+)/i) || description.match(/delete[:\s]+(\d+)/i);
+                title.match(/delete[:\s]+(\d+)/i) || description.match(/delete[:\s]+(\d+)/i) ||
+                title.match(/removing[:\s]+(\d+)/i) || description.match(/deleting[:\s]+(\d+)/i);
             if (removeMatch) {
                 const removeValue = parseInt(removeMatch[1]);
                 const treeRoot = levelOrderToTree(validated.tree);
@@ -2530,24 +2550,8 @@ function universalTreeExecutor(llmOutput, query) {
     if (!query) return null;
     const queryLower = query.toLowerCase();
 
-    // Check if this is a tree-related query
-    const isTreeQuery =
-        queryLower.includes('tree') ||
-        queryLower.includes('bst') ||
-        queryLower.includes('binary search tree') ||
-        queryLower.includes('binary tree') ||
-        queryLower.includes('traversal') ||
-        queryLower.includes('inorder') ||
-        queryLower.includes('preorder') ||
-        queryLower.includes('postorder') ||
-        queryLower.includes('insert') && queryLower.includes('tree') ||
-        queryLower.includes('remove') && queryLower.includes('tree') ||
-        queryLower.includes('delete') && queryLower.includes('tree') ||
-        queryLower.includes('search') && queryLower.includes('tree') ||
-        queryLower.includes('find') && queryLower.includes('tree') ||
-        queryLower.includes('construct') && queryLower.includes('tree') ||
-        queryLower.includes('build') && queryLower.includes('tree') ||
-        /\[([0-9,\s]+)\]/.test(query) && (queryLower.includes('tree') || queryLower.includes('bst'));
+    // Check if this is a tree-related query with more specific detection
+    const isTreeQuery = checkIfTreeQuery(queryLower);
 
     if (!isTreeQuery) return null;
 
@@ -2563,6 +2567,57 @@ function universalTreeExecutor(llmOutput, query) {
 
     // Fallback: Generate deterministic tree visualization
     return generateTreeFallback(query);
+}
+
+/**
+ * Improved tree query detection with better prioritization
+ */
+function checkIfTreeQuery(queryLower) {
+    // Strong tree indicators - these should take priority over array detection
+    const strongTreeIndicators = [
+        'bst', 'binary search tree', 'binary tree', 'tree',
+        'inorder', 'preorder', 'postorder', 'traversal',
+        'insert.*into.*tree', 'remove.*from.*tree', 'delete.*from.*tree',
+        'search.*in.*tree', 'find.*in.*tree', 'traverse.*tree',
+        'root.*left.*right', 'node.*tree', 'leaf.*tree',
+        'construct.*tree', 'build.*tree', 'create.*tree'
+    ];
+
+    // Check for strong tree indicators
+    for (const indicator of strongTreeIndicators) {
+        if (new RegExp(indicator, 'i').test(queryLower)) {
+            return true;
+        }
+    }
+
+    // Check for tree operations with numbers (like "insert 4 2 6 1 3 5 7")
+    const treeOperationPattern = /(insert|remove|delete|search|find).*\d.*\d/;
+    if (treeOperationPattern.test(queryLower) &&
+        (queryLower.includes('tree') || queryLower.includes('bst') || queryLower.includes('binary'))) {
+        return true;
+    }
+
+    // Check for specific tree operation sequences - this is the key improvement
+    // For cases like "insert 4 2 6 1 3 5 7 then remove 1 insert 0 remove 4 insert 9 and then traverse"
+    const multiTreeOperationPattern = /insert.*\d+.*\d+.*\d+|insert.*\d+.*and.*remove|insert.*\d+.*then.*remove|remove.*\d+.*then.*insert|perform.*operations.*on.*tree|create.*tree.*with.*insert|traverse.*tree.*using.*inorder/;
+    if (multiTreeOperationPattern.test(queryLower)) {
+        return true;
+    }
+
+    // Check for specific tree operation sequences
+    const multiOperationPattern = /insert.*and.*remove|remove.*and.*insert|insert.*then.*remove|remove.*then.*insert|perform.*operations/;
+    if (multiOperationPattern.test(queryLower) &&
+        (/\[([0-9,\s]+)\]/.test(queryLower) || queryLower.includes('tree'))) {
+        return true;
+    }
+
+    // Additional check for BST operations patterns
+    const bstPattern = /bst.*insert|insert.*into.*bst|binary.*search.*tree.*insert|create.*empty.*tree.*then.*insert/;
+    if (bstPattern.test(queryLower)) {
+        return true;
+    }
+
+    return false;
 }
 
 /**
@@ -2604,27 +2659,37 @@ function validateAndCorrectTreeOutput(llmOutput, query) {
             const descLower = (step.description || '').toLowerCase();
             const fullText = titleLower + ' ' + descLower;
 
-            // Check for insert operation
-            const insertMatch = fullText.match(/insert[:\s]+(\d+)/i);
+            // Check for insert operation - improved pattern matching
+            const insertMatch = fullText.match(/insert[:\s]+(\d+)/i) ||
+                               fullText.match(/inserting[:\s]+(\d+)/i) ||
+                               fullText.match(/add[:\s]+(\d+)/i);
             if (insertMatch) {
                 const valueToInsert = parseInt(insertMatch[1]);
                 if (!isNaN(valueToInsert)) {
                     currentTree = bstInsert(currentTree, valueToInsert);
+                    console.log(`[BST Validator] Inserting ${valueToInsert}, new tree:`, currentTree.filter(v => v !== null));
                 }
             }
 
-            // Check for remove operation
-            const removeMatch = fullText.match(/remove[:\s]+(\d+)/i) || fullText.match(/delete[:\s]+(\d+)/i);
+            // Check for remove operation - improved pattern matching
+            const removeMatch = fullText.match(/remove[:\s]+(\d+)/i) ||
+                               fullText.match(/removing[:\s]+(\d+)/i) ||
+                               fullText.match(/delete[:\s]+(\d+)/i) ||
+                               fullText.match(/deleting[:\s]+(\d+)/i);
             if (removeMatch) {
                 const valueToRemove = parseInt(removeMatch[1]);
                 if (!isNaN(valueToRemove)) {
                     currentTree = bstRemove(currentTree, valueToRemove);
+                    console.log(`[BST Validator] Removing ${valueToRemove}, new tree:`, currentTree.filter(v => v !== null));
                 }
             }
 
             // Ensure step has tree field - use current tree if missing
             if (!step.tree || !Array.isArray(step.tree)) {
                 step.tree = [...currentTree];
+            } else {
+                // If tree exists in the step, update currentTree to match for consistency
+                currentTree = [...step.tree];
             }
 
             // Validate tree consistency
@@ -3072,9 +3137,14 @@ module.exports = {
     structureExecutor,
     // Universal executors
     universalTreeExecutor,
+    universalArrayExecutor,
+    universalStackExecutor,
+    universalQueueExecutor,
     // BST helpers (for use in normalizer/controller)
     bstInsert,
     bstRemove,
     levelOrderToTree,
-    treeToLevelOrder
+    treeToLevelOrder,
+    // Helper functions
+    checkIfTreeQuery
 };
