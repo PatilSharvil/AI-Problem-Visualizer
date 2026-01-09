@@ -22,11 +22,13 @@ class APIKeyManager {
     }
 
     // Provider order (first to last) - only when not using local model
-    this.providerOrder = ['gemini', 'openai', 'deepseek', 'groq', 'togetherai'];
+    // OpenRouter with Qwen is added as fallback after Gemini
+    this.providerOrder = ['gemini', 'openrouter', 'openai', 'deepseek', 'groq', 'togetherai'];
 
     // Parse keys from environment variables (comma-separated)
     this.keys = {
       gemini: this._parseKeys(process.env.GEMINI_API_KEYS),
+      openrouter: this._parseKeys(process.env.OPENROUTER_API_KEYS),
       deepseek: this._parseKeys(process.env.DEEPSEEK_API_KEYS),
       openai: this._parseKeys(process.env.OPENAI_API_KEYS),
       groq: this._parseKeys(process.env.GROQ_API_KEYS),
@@ -36,6 +38,7 @@ class APIKeyManager {
     // Current index for each provider
     this.currentKeyIndex = {
       gemini: 0,
+      openrouter: 0,
       deepseek: 0,
       openai: 0,
       groq: 0,
@@ -203,19 +206,25 @@ class APIKeyManager {
     const errorMessage = error.message || error.toString();
     const statusCode = error.status || error.statusCode || error.code;
 
-    // Rate limit indicators
-    const rateLimitIndicators = [
+    // Rate limit and service unavailable indicators
+    const rotationIndicators = [
       statusCode === 429,
       statusCode === '429',
+      statusCode === 503,  // Service Unavailable
+      statusCode === '503',
       errorMessage.includes('429'),
+      errorMessage.includes('503'),
       errorMessage.toLowerCase().includes('rate limit'),
       errorMessage.toLowerCase().includes('quota'),
       errorMessage.toLowerCase().includes('too many requests'),
       errorMessage.toLowerCase().includes('resource exhausted'),
-      errorMessage.toLowerCase().includes('exceeded')
+      errorMessage.toLowerCase().includes('exceeded'),
+      errorMessage.toLowerCase().includes('overloaded'),  // Gemini "model is overloaded"
+      errorMessage.toLowerCase().includes('service unavailable'),
+      errorMessage.toLowerCase().includes('temporarily unavailable')
     ];
 
-    return rateLimitIndicators.some(i => i);
+    return rotationIndicators.some(i => i);
   }
 
   /**

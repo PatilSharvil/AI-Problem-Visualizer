@@ -1,5 +1,6 @@
 const { getAPIKeyManager } = require('./apiKeyManager');
 const { GeminiAdapter } = require('./geminiAdapter');
+const { OpenRouterAdapter } = require('./openrouterAdapter');
 const { DeepSeekAdapter } = require('./deepseekAdapter');
 const { OpenAIAdapter } = require('./openaiAdapter');
 const { GroqAdapter } = require('./groqAdapter');
@@ -26,6 +27,8 @@ class LLMService {
         return new OllamaAdapter(process.env.OLLAMA_MODEL || 'qwen2.5-coder:7b-instruct');
       case 'gemini':
         return new GeminiAdapter(apiKey);
+      case 'openrouter':
+        return new OpenRouterAdapter(apiKey);
       case 'deepseek':
         return new DeepSeekAdapter(apiKey);
       case 'openai':

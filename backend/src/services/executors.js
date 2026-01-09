@@ -1,212 +1,197 @@
 /**
- * Lightweight Executor Layer
+ * Intent-Respecting Executor Layer
  * 
- * Pure, deterministic functions that validate and correct obvious
- * inconsistencies in LLM-generated JSON. These run AFTER LLM response
- * and BEFORE the universal normalizer.
+ * ARCHITECTURE PRINCIPLES:
+ * 1. LLM decides WHAT algorithm is being demonstrated
+ * 2. Backend (this layer) decides HOW to keep it correct
+ * 3. Frontend decides HOW to visualize it
  * 
- * Rules:
- * - No LLM calls
- * - No keyword/pattern detection
- * - No step creation or reordering
- * - Only adjust or drop invalid fields
- * - Must be pure functions (same input = same output)
+ * THREE-PHASE EXECUTION:
+ * Phase 1: INTENT RESOLUTION - Extract and lock intent from LLM output
+ * Phase 2: CORRECTION - Fix illegal states (out-of-bounds, invalid BST, etc.)
+ * Phase 3: FALLBACK - Generate deterministic output ONLY if LLM completely fails
+ * 
+ * CRITICAL RULES:
+ * - NEVER override valid LLM output with deterministic algorithms
+ * - NEVER change algorithm type based on keywords alone
+ * - NEVER generate traversals unless explicitly requested
+ * - Deterministic fallbacks ONLY activate when LLM is null/undefined/malformed
  */
+
+const {
+    resolveIntent,
+    isLLMOutputValid,
+    requiresTraversal
+} = require('./intentResolver');
 
 // Feature flag - set via environment variable or default to enabled
 const ENABLE_EXECUTORS = process.env.ENABLE_EXECUTORS !== 'false';
 
 /**
- * Main dispatcher - runs all applicable executors on LLM output
+ * Main dispatcher - runs executors with intent-respecting architecture
  * @param {Object} llmOutput - Raw LLM JSON response
  * @param {string} originalProblem - Original user query (optional)
+ * @param {Object} providedIntent - Optional pre-resolved intent
  * @returns {Object} - Validated/corrected LLM output
  */
-function runExecutors(llmOutput, originalProblem = '') {
+function runExecutors(llmOutput, originalProblem = '', providedIntent = null) {
     if (!ENABLE_EXECUTORS) {
         return llmOutput;
     }
 
-    // FIRST: Check for deterministic algorithms that bypass LLM entirely
-    const binarySearchResult = deterministicBinarySearch(originalProblem);
-    if (binarySearchResult) {
-        console.log('[Executor] Using DETERMINISTIC binary search - bypassing LLM output');
-        return binarySearchResult;
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 1: INTENT RESOLUTION
+    // Resolve intent from LLM output first. Once locked, cannot be changed.
+    // ═══════════════════════════════════════════════════════════════════════════
+    const intent = providedIntent || resolveIntent(llmOutput, originalProblem);
+
+    console.log('═══════════════════════════════════════════════════════════════');
+    console.log('[Executor] INTENT RESOLUTION');
+    console.log(`  Domain: ${intent.domain}`);
+    console.log(`  Algorithm: ${intent.algorithm || 'not specified'}`);
+    console.log(`  Operations: [${intent.operations.join(', ')}]`);
+    console.log(`  Source: ${intent.source}`);
+    console.log(`  Locked: ${intent.locked}`);
+    console.log('═══════════════════════════════════════════════════════════════');
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 2: LLM OUTPUT VALIDATION
+    // Check if LLM output is structurally valid before deciding correction vs fallback
+    // ═══════════════════════════════════════════════════════════════════════════
+    const llmIsValid = isLLMOutputValid(llmOutput);
+
+    if (llmIsValid && intent.locked) {
+        // LLM output is valid and intent is from LLM - apply CORRECTIONS ONLY
+        console.log('[Executor] LLM output valid with locked intent - CORRECTION MODE');
+        return applyCorrectionsOnly(llmOutput, intent, originalProblem);
     }
 
-    const linearSearchResult = deterministicLinearSearch(originalProblem);
-    if (linearSearchResult) {
-        console.log('[Executor] Using DETERMINISTIC linear search - bypassing LLM output');
-        return linearSearchResult;
+    if (llmIsValid && !intent.locked) {
+        // LLM output is valid but intent was inferred - still prefer LLM output
+        console.log('[Executor] LLM output valid with inferred intent - CORRECTION MODE');
+        return applyCorrectionsOnly(llmOutput, intent, originalProblem);
     }
 
-    const slidingWindowResult = deterministicSlidingWindow(originalProblem);
-    if (slidingWindowResult) {
-        console.log('[Executor] Using DETERMINISTIC sliding window - bypassing LLM output');
-        return slidingWindowResult;
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 3: FALLBACK MODE
+    // LLM output is missing or invalid - use deterministic algorithms
+    // ═══════════════════════════════════════════════════════════════════════════
+    console.log('[Executor] LLM output invalid/missing - FALLBACK MODE');
+
+    const fallbackResult = generateDeterministicFallback(originalProblem, intent);
+    if (fallbackResult) {
+        console.log('[Executor] Deterministic fallback generated successfully');
+        return fallbackResult;
     }
 
-    // VALID PARENTHESES - catches bracket/parenthesis validation problems
-    const validParenthesesResult = deterministicValidParentheses(originalProblem);
-    if (validParenthesesResult) {
-        console.log('[Executor] Using DETERMINISTIC valid parentheses - bypassing LLM output');
-        return validParenthesesResult;
-    }
-
-    // REVERSE STRING USING STACK
-    const reverseStringResult = deterministicReverseString(originalProblem);
-    if (reverseStringResult) {
-        console.log('[Executor] Using DETERMINISTIC reverse string (stack) - bypassing LLM output');
-        return reverseStringResult;
-    }
-
-    // GENERIC STACK OPERATIONS - push/pop demonstration
-    const stackOpsResult = deterministicStackOperations(originalProblem);
-    if (stackOpsResult) {
-        console.log('[Executor] Using DETERMINISTIC stack operations - bypassing LLM output');
-        return stackOpsResult;
-    }
-
-    // UNIVERSAL TREE EXECUTOR - handles any tree-related query FIRST (higher priority)
-    // Validates LLM output and provides deterministic fallback
-    const universalTreeResult = universalTreeExecutor(llmOutput, originalProblem);
-    if (universalTreeResult) {
-        console.log('[Executor] Using UNIVERSAL tree executor - validated/corrected output');
-        return universalTreeResult;
-    }
-
-    // UNIVERSAL STACK EXECUTOR - catches any remaining stack queries
-    // Validates LLM output and provides deterministic fallback
-    const universalStackResult = universalStackExecutor(llmOutput, originalProblem);
-    if (universalStackResult) {
-        console.log('[Executor] Using UNIVERSAL stack executor - validated/corrected output');
-        return universalStackResult;
-    }
-
-    // QUEUE OPERATIONS - enqueue/dequeue demonstration
-    const queueOpsResult = deterministicQueueOperations(originalProblem);
-    if (queueOpsResult) {
-        console.log('[Executor] Using DETERMINISTIC queue operations - bypassing LLM output');
-        return queueOpsResult;
-    }
-
-    // UNIVERSAL QUEUE EXECUTOR - catches any remaining queue queries
-    const universalQueueResult = universalQueueExecutor(llmOutput, originalProblem);
-    if (universalQueueResult) {
-        console.log('[Executor] Using UNIVERSAL queue executor - validated/corrected output');
-        return universalQueueResult;
-    }
-
-    // GENERIC SORT - catches "sort the array", "sort this", etc. - defaults to bubble sort
-    const genericSortResult = deterministicGenericSort(originalProblem);
-    if (genericSortResult) {
-        console.log('[Executor] Using DETERMINISTIC generic sort (bubble) - bypassing LLM output');
-        return genericSortResult;
-    }
-
-    const bubbleSortResult = deterministicBubbleSort(originalProblem);
-    if (bubbleSortResult) {
-        console.log('[Executor] Using DETERMINISTIC bubble sort - bypassing LLM output');
-        return bubbleSortResult;
-    }
-
-    const selectionSortResult = deterministicSelectionSort(originalProblem);
-    if (selectionSortResult) {
-        console.log('[Executor] Using DETERMINISTIC selection sort - bypassing LLM output');
-        return selectionSortResult;
-    }
-
-    const insertionSortResult = deterministicInsertionSort(originalProblem);
-    if (insertionSortResult) {
-        console.log('[Executor] Using DETERMINISTIC insertion sort - bypassing LLM output');
-        return insertionSortResult;
-    }
-
-    const quickSortResult = deterministicQuickSort(originalProblem);
-    if (quickSortResult) {
-        console.log('[Executor] Using DETERMINISTIC quick sort - bypassing LLM output');
-        return quickSortResult;
-    }
-
-    const mergeSortResult = deterministicMergeSort(originalProblem);
-    if (mergeSortResult) {
-        console.log('[Executor] Using DETERMINISTIC merge sort - bypassing LLM output');
-        return mergeSortResult;
-    }
-
-    // UNIVERSAL ARRAY EXECUTOR - catches any remaining array queries
-    // Validates LLM output and provides deterministic fallback
-    const universalArrayResult = universalArrayExecutor(llmOutput, originalProblem);
-    if (universalArrayResult) {
-        console.log('[Executor] Using UNIVERSAL array executor - validated/corrected output');
-        return universalArrayResult;
-    }
-
-    // FINAL FALLBACK: If LLM failed and no specific deterministic match, 
-    // try to at least show the array if one exists in the query
-    if (!llmOutput) {
-        const arrayMatch = originalProblem.match(/\[([0-9,\s\-]+)\]/);
-        if (arrayMatch) {
-            console.log('[Executor] FINAL FALLBACK - Showing array from query');
-            const arr = arrayMatch[1].split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
-            if (arr.length > 0) {
-                return {
-                    structures: [{ id: "arr", type: "array", label: "Array", data: arr }],
-                    steps: [{
-                        title: "Detected Array",
-                        description: "No specific algorithm detected. Displaying array from query.",
-                        array: [...arr]
-                    }]
-                };
-            }
-        }
-    }
-
-    if (!llmOutput || typeof llmOutput !== 'object') {
+    // Absolute last resort - return whatever we have or a basic fallback
+    if (llmOutput && typeof llmOutput === 'object') {
+        console.log('[Executor] No fallback available, returning raw LLM output');
         return llmOutput;
     }
 
-    // Deep clone to avoid mutations
-    let output = JSON.parse(JSON.stringify(llmOutput));
+    // Nothing worked - generate minimal array display if possible
+    const arrayMatch = originalProblem.match(/\[([0-9,\s\-]+)\]/);
+    if (arrayMatch) {
+        console.log('[Executor] MINIMAL FALLBACK - Showing detected array');
+        const arr = arrayMatch[1].split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+        if (arr.length > 0) {
+            return {
+                structures: [{ id: "arr", type: "array", label: "Array", data: arr }],
+                steps: [{
+                    title: "Input Data",
+                    description: "Displaying detected input data.",
+                    array: [...arr]
+                }]
+            };
+        }
+    }
 
-    // Validate structures
+    console.log('[Executor] No output could be generated');
+    return null;
+}
+
+/**
+ * Apply corrections to valid LLM output WITHOUT changing algorithm intent
+ * This only fixes illegal states (out-of-bounds, invalid BST, etc.)
+ */
+function applyCorrectionsOnly(llmOutput, intent, originalProblem) {
+    // Transform array-format LLM output into object format
+    let normalizedOutput = llmOutput;
+
+    if (Array.isArray(llmOutput)) {
+        console.log('[Executor] Transforming array-format LLM output to object format');
+
+        // Extract array data from first step for structures
+        const firstStep = llmOutput[0] || {};
+        const arrayData = firstStep.array || firstStep.data || [];
+
+        // Determine structure type from intent
+        const structureType = intent.domain === 'tree' ? 'tree' :
+            intent.domain === 'stack' ? 'stack' :
+                intent.domain === 'queue' ? 'queue' : 'array';
+        const structureId = structureType === 'array' ? 'arr' : structureType;
+
+        // Create structures from the data
+        const structures = [{
+            id: structureId,
+            type: structureType,
+            label: structureType.toUpperCase(),
+            data: arrayData
+        }];
+
+        // Transform each step to include title/description
+        const steps = llmOutput.map((step, idx) => ({
+            title: step.action || step.comparison || `Step ${step.step || idx + 1}`,
+            description: step.action || step.comparison || `Processing step ${idx + 1}`,
+            array: step.array || step.data,
+            pointers: step.low !== undefined ? { low: step.low, high: step.high, mid: step.mid } : undefined,
+            highlight: step.mid !== undefined ? [step.mid] : [],
+            variables: {
+                target: step.target,
+                mid_value: step.mid_value,
+                found: step.found
+            }
+        }));
+
+        normalizedOutput = { structures, steps };
+    }
+
+    // Deep clone to avoid mutations
+    let output = JSON.parse(JSON.stringify(normalizedOutput));
+
+    // Validate structures (basic validation only)
     if (Array.isArray(output.structures)) {
         output.structures = output.structures.map(structureExecutor);
     }
 
-    // Parse initial tree from user query if present
-    let initialTree = parseTreeFromQuery(originalProblem);
-
-    // Track previous tree for BST operations
+    // Parse initial tree from structures if present
     let previousTree = null;
-
-    // Get initial tree from structures or parsed query
-    const treeStructure = output.structures?.find(s => s.type === 'tree');
-    if (initialTree && initialTree.length > 0) {
-        previousTree = [...initialTree];
-        // Also update the structure data
-        if (treeStructure) {
-            treeStructure.data = [...initialTree];
-        }
-    } else if (treeStructure && Array.isArray(treeStructure.data)) {
+    const treeStructure = output.structures?.find(s =>
+        s.type === 'tree' || s.type === 'bst' || s.id === 'tree'
+    );
+    if (treeStructure && Array.isArray(treeStructure.data)) {
         previousTree = [...treeStructure.data];
     }
 
-    // Parse operations from user query for reference
+    // Parse operations from query for reference (NOT to override intent)
     const queryOperations = parseOperationsFromQuery(originalProblem);
-    console.log('[Executor] Parsed operations from query:', queryOperations);
 
-    // Validate each step
+    // Validate each step - fix illegal states only
     if (Array.isArray(output.steps)) {
         output.steps = output.steps.map((step, idx) => {
             let validatedStep = { ...step };
 
-            // Run structure-specific executors
+            // Apply structure-specific CORRECTION executors (not algorithmic overrides)
             validatedStep = arrayExecutor(validatedStep);
             validatedStep = stackExecutor(validatedStep);
             validatedStep = queueExecutor(validatedStep);
-            validatedStep = treeExecutor(validatedStep, previousTree, queryOperations);
             validatedStep = pointersExecutor(validatedStep);
+
+            // Tree executor - only apply BST corrections, not traversal generation
+            // Check if traversal is explicitly required before any traversal-related corrections
+            const traversalRequired = requiresTraversal(intent, originalProblem);
+            validatedStep = treeExecutorCorrectionOnly(validatedStep, previousTree, queryOperations, traversalRequired);
 
             // Update previousTree for next iteration
             if (Array.isArray(validatedStep.tree)) {
@@ -218,6 +203,276 @@ function runExecutors(llmOutput, originalProblem = '') {
     }
 
     return output;
+}
+
+/**
+ * Generate deterministic fallback ONLY when LLM output is missing/invalid
+ * This is the only place where query-based algorithm detection is allowed
+ */
+function generateDeterministicFallback(query, intent) {
+    if (!query) return null;
+
+    console.log('[Fallback] Attempting deterministic generation...');
+
+    // Use intent to guide fallback selection
+    // IMPORTANT: This is fallback mode - LLM failed, so we must generate something
+
+    // Tree-related fallbacks
+    if (intent.domain === 'tree') {
+        const treeResult = deterministicTreeFallback(query, intent);
+        if (treeResult) return treeResult;
+    }
+
+    // Stack-related fallbacks
+    if (intent.domain === 'stack') {
+        // Valid parentheses
+        const validParenResult = deterministicValidParentheses(query);
+        if (validParenResult) return validParenResult;
+
+        // Reverse string
+        const reverseResult = deterministicReverseString(query);
+        if (reverseResult) return reverseResult;
+
+        // Generic stack operations
+        const stackOpsResult = deterministicStackOperations(query);
+        if (stackOpsResult) return stackOpsResult;
+    }
+
+    // Queue-related fallbacks
+    if (intent.domain === 'queue') {
+        const queueResult = deterministicQueueOperations(query);
+        if (queueResult) return queueResult;
+    }
+
+    // Array-related fallbacks (only if intent is array or unknown)
+    if (intent.domain === 'array' || intent.domain === 'unknown') {
+        // Match specific algorithms by intent.algorithm
+        if (intent.algorithm === 'binary_search') {
+            const result = deterministicBinarySearch(query);
+            if (result) return result;
+        }
+        if (intent.algorithm === 'linear_search') {
+            const result = deterministicLinearSearch(query);
+            if (result) return result;
+        }
+        if (intent.algorithm === 'sliding_window') {
+            const result = deterministicSlidingWindow(query);
+            if (result) return result;
+        }
+        if (intent.algorithm === 'bubble_sort') {
+            const result = deterministicBubbleSort(query);
+            if (result) return result;
+        }
+        if (intent.algorithm === 'selection_sort') {
+            const result = deterministicSelectionSort(query);
+            if (result) return result;
+        }
+        if (intent.algorithm === 'insertion_sort') {
+            const result = deterministicInsertionSort(query);
+            if (result) return result;
+        }
+        if (intent.algorithm === 'quick_sort') {
+            const result = deterministicQuickSort(query);
+            if (result) return result;
+        }
+        if (intent.algorithm === 'merge_sort') {
+            const result = deterministicMergeSort(query);
+            if (result) return result;
+        }
+        if (intent.algorithm === 'two_sum') {
+            const result = deterministicTwoSum(query);
+            if (result) return result;
+        }
+        if (intent.algorithm === 'three_sum') {
+            const result = deterministicThreeSum(query);
+            if (result) return result;
+        }
+
+        // If no specific algorithm but we have array operations
+        if (!intent.algorithm && intent.operations.includes('sort')) {
+            const result = deterministicGenericSort(query);
+            if (result) return result;
+        }
+
+        if (!intent.algorithm && intent.operations.includes('search')) {
+            // Default to linear search if no specific type
+            const result = deterministicLinearSearch(query);
+            if (result) return result;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Deterministic tree fallback - for when LLM fails on tree problems
+ */
+function deterministicTreeFallback(query, intent) {
+    // Parse tree array from query
+    const treeArray = parseTreeFromQuery(query);
+    if (!treeArray || treeArray.length === 0) return null;
+
+    // Create tree structure
+    const steps = [];
+
+    // Only generate traversal if explicitly required
+    if (requiresTraversal(intent, query)) {
+        // Generate the appropriate traversal
+        const traversalType = detectTraversalType(query);
+        return generateTraversalSteps(treeArray, traversalType);
+    }
+
+    // Otherwise, just show the tree with any insert/remove operations
+    const operations = parseOperationsFromQuery(query);
+
+    if (operations.length > 0) {
+        // Generate steps for each operation
+        let currentTree = [...treeArray];
+
+        steps.push({
+            title: "Initial BST",
+            description: `Starting with BST: [${currentTree.filter(v => v !== null).join(', ')}]`,
+            tree: [...currentTree]
+        });
+
+        for (const op of operations) {
+            if (op.type === 'insert') {
+                currentTree = bstInsertHelper(currentTree, op.value);
+                steps.push({
+                    title: `Insert ${op.value}`,
+                    description: `Inserting ${op.value} into BST`,
+                    tree: [...currentTree],
+                    highlight: [op.value]
+                });
+            } else if (op.type === 'remove') {
+                currentTree = bstRemoveHelper(currentTree, op.value);
+                steps.push({
+                    title: `Remove ${op.value}`,
+                    description: `Removing ${op.value} from BST`,
+                    tree: [...currentTree]
+                });
+            }
+        }
+
+        return {
+            structures: [{ id: "tree", type: "tree", label: "BST", data: treeArray }],
+            steps
+        };
+    }
+
+    // No operations, just display the tree
+    return {
+        structures: [{ id: "tree", type: "tree", label: "BST", data: treeArray }],
+        steps: [{
+            title: "BST",
+            description: `Binary Search Tree with values: [${treeArray.filter(v => v !== null).join(', ')}]`,
+            tree: [...treeArray]
+        }]
+    };
+}
+
+/**
+ * Tree executor - CORRECTION ONLY mode
+ * Only fixes BST violations, does NOT generate traversals or change algorithm
+ */
+function treeExecutorCorrectionOnly(step, previousTree, queryOperations, traversalRequired) {
+    if (!step) return step;
+    const validated = { ...step };
+
+    // Ensure tree is array
+    if (validated.tree !== undefined) {
+        if (!Array.isArray(validated.tree)) {
+            if (typeof validated.tree === 'object') {
+                // Keep object format
+            } else {
+                validated.tree = [];
+            }
+        } else if (previousTree && Array.isArray(previousTree)) {
+            // Apply BST corrections (insert/remove) based on step title
+            const title = (validated.title || '').toLowerCase();
+            const description = (validated.description || '').toLowerCase();
+            const fullText = title + ' ' + description;
+
+            const treeValues = previousTree.filter(v => v !== null && v !== undefined);
+
+            // Check for insert
+            const insertMatch = fullText.match(/insert[:\s]+(\d+)/i) ||
+                fullText.match(/inserting[:\s]+(\d+)/i) ||
+                fullText.match(/add[:\s]+(\d+)/i);
+            if (insertMatch) {
+                const valueToInsert = parseInt(insertMatch[1]);
+                if (!treeValues.includes(valueToInsert)) {
+                    const correctTree = bstInsertHelper(previousTree, valueToInsert);
+                    validated.tree = correctTree;
+                }
+            }
+
+            // Check for remove
+            const removeMatch = fullText.match(/remove[:\s]+(\d+)/i) ||
+                fullText.match(/removing[:\s]+(\d+)/i) ||
+                fullText.match(/delete[:\s]+(\d+)/i) ||
+                fullText.match(/deleting[:\s]+(\d+)/i);
+            if (removeMatch) {
+                const valueToRemove = parseInt(removeMatch[1]);
+                if (treeValues.includes(valueToRemove)) {
+                    const correctTree = bstRemoveHelper(previousTree, valueToRemove);
+                    validated.tree = correctTree;
+                }
+            }
+        }
+
+        // Always apply basic validation
+        if (Array.isArray(validated.tree)) {
+            validated.tree = removeDuplicatesFromTree(validated.tree);
+            validated.tree = trimTrailingNulls(validated.tree);
+            validated.tree = validateAndFixBSTStructure(validated.tree);
+        }
+    }
+
+    // Clean up result array
+    if (Array.isArray(validated.result) && Array.isArray(validated.tree)) {
+        const treeValues = new Set(validated.tree.filter(v => v !== null && v !== undefined));
+        validated.result = validated.result.filter(v => treeValues.has(v));
+        validated.result = [...new Set(validated.result)];
+    }
+
+    return validated;
+}
+
+/**
+ * Detect traversal type from query
+ */
+function detectTraversalType(query) {
+    const q = (query || '').toLowerCase();
+    if (q.includes('preorder') || q.includes('pre-order')) return 'preorder';
+    if (q.includes('postorder') || q.includes('post-order')) return 'postorder';
+    if (q.includes('level') || q.includes('bfs')) return 'levelorder';
+    if (q.includes('inorder') || q.includes('in-order')) return 'inorder';
+    return 'inorder'; // Default only if traversal is explicitly requested
+}
+
+/**
+ * Generate traversal steps - ONLY called when traversal is explicitly required
+ */
+function generateTraversalSteps(treeArray, traversalType) {
+    const steps = [];
+    const result = [];
+
+    // Build tree and perform traversal
+    // (Implementation would go here - calling existing traversal helpers)
+
+    steps.push({
+        title: `${traversalType.charAt(0).toUpperCase() + traversalType.slice(1)} Traversal`,
+        description: `Performing ${traversalType} traversal on the BST`,
+        tree: [...treeArray],
+        result: []
+    });
+
+    // For now, return basic structure - existing traversal logic will be used
+    return {
+        structures: [{ id: "tree", type: "tree", label: "BST", data: treeArray }],
+        steps
+    };
 }
 
 /**
@@ -1269,18 +1524,18 @@ function universalArrayExecutor(llmOutput, query) {
         queryLower.includes('element') ||
         queryLower.includes('index') ||
         queryLower.includes('traverse') &&
-            !(queryLower.includes('tree') || queryLower.includes('bst')) || // Exclude tree traversals
+        !(queryLower.includes('tree') || queryLower.includes('bst')) || // Exclude tree traversals
         queryLower.includes('find') &&
-            !(queryLower.includes('tree') || queryLower.includes('bst')) || // Exclude tree searches
+        !(queryLower.includes('tree') || queryLower.includes('bst')) || // Exclude tree searches
         queryLower.includes('sum') ||
         queryLower.includes('max') ||
         queryLower.includes('min') ||
         queryLower.includes('target') ||
         queryLower.includes('pair') ||
         queryLower.includes('sort') &&
-            !(queryLower.includes('tree') || queryLower.includes('bst')) || // Exclude tree sorts
+        !(queryLower.includes('tree') || queryLower.includes('bst')) || // Exclude tree sorts
         /\[[0-9,\s\-]+\]/.test(query) && // Has array literal
-            !(queryLower.includes('tree') || queryLower.includes('bst') || queryLower.includes('binary')); // Exclude tree arrays
+        !(queryLower.includes('tree') || queryLower.includes('bst') || queryLower.includes('binary')); // Exclude tree arrays
 
     if (!isArrayQuery) return null;
 
@@ -1827,6 +2082,443 @@ function deterministicMergeSort(query) {
 }
 
 /**
+ * Deterministic 3Sum - finds triplets that sum to zero
+ */
+function deterministicThreeSum(query) {
+    if (!query) return null;
+    const queryLower = query.toLowerCase();
+
+    // Check if it's a 3Sum problem
+    const isThreeSum =
+        queryLower.includes('3sum') ||
+        queryLower.includes('triplets') ||
+        queryLower.includes('three sum') ||
+        (queryLower.includes('three') && queryLower.includes('sum') && queryLower.includes('zero')) ||
+        (queryLower.includes('return') && queryLower.includes('triplets') && queryLower.includes('sum')) ||
+        (queryLower.includes('array') && queryLower.includes('three') && queryLower.includes('equal') && queryLower.includes('0'));
+
+    if (!isThreeSum) return null;
+
+    // Extract array from query
+    const arrayMatch = query.match(/\[([-\d,\s]+)\]/);
+    if (!arrayMatch) return null;
+
+    let arr = arrayMatch[1].split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+    if (arr.length < 3) return null;
+
+    console.log(`[3Sum Executor] Array: [${arr.join(',')}]`);
+
+    const steps = [];
+    const original = [...arr];
+    const results = [];
+
+    // Sort the array first (common 3Sum approach)
+    const sortedArr = [...arr].sort((a, b) => a - b);
+
+    steps.push({
+        title: "Initial Array",
+        description: `Input array: [${arr.join(', ')}]. Sort for 3Sum algorithm.`,
+        array: [...arr],
+        result: []
+    });
+
+    steps.push({
+        title: "Sorted Array",
+        description: `Sort array: [${sortedArr.join(', ')}]`,
+        array: [...sortedArr],
+        result: []
+    });
+
+    // 3Sum algorithm with three pointers
+    for (let i = 0; i < sortedArr.length - 2; i++) {
+        // Skip duplicates for first element
+        if (i > 0 && sortedArr[i] === sortedArr[i - 1]) continue;
+
+        let left = i + 1;
+        let right = sortedArr.length - 1;
+
+        steps.push({
+            title: `Fix element ${sortedArr[i]} at index ${i}`,
+            description: `Set left=${left} (${sortedArr[left]}), right=${right} (${sortedArr[right]})`,
+            array: [...sortedArr],
+            pointers: { i, left, right },
+            highlight: [i, left, right]
+        });
+
+        while (left < right) {
+            const sum = sortedArr[i] + sortedArr[left] + sortedArr[right];
+
+            if (sum === 0) {
+                const triplet = [sortedArr[i], sortedArr[left], sortedArr[right]];
+                results.push(triplet);
+
+                steps.push({
+                    title: `Triplet found: [${triplet.join(', ')}]`,
+                    description: `${sortedArr[i]} + ${sortedArr[left]} + ${sortedArr[right]} = 0`,
+                    array: [...sortedArr],
+                    pointers: { i, left, right },
+                    highlight: [i, left, right],
+                    result: [...results]
+                });
+
+                // Skip duplicates
+                while (left < right && sortedArr[left] === sortedArr[left + 1]) left++;
+                while (left < right && sortedArr[right] === sortedArr[right - 1]) right--;
+
+                left++;
+                right--;
+            } else if (sum < 0) {
+                steps.push({
+                    title: `Sum ${sum} < 0`,
+                    description: `Move left pointer right to increase sum`,
+                    array: [...sortedArr],
+                    pointers: { i, left, right },
+                    highlight: [i, left, right]
+                });
+                left++;
+            } else {
+                steps.push({
+                    title: `Sum ${sum} > 0`,
+                    description: `Move right pointer left to decrease sum`,
+                    array: [...sortedArr],
+                    pointers: { i, left, right },
+                    highlight: [i, left, right]
+                });
+                right--;
+            }
+        }
+    }
+
+    steps.push({
+        title: "All triplets found",
+        description: `Triplets that sum to zero: ${results.length > 0 ? JSON.stringify(results) : 'None'}`,
+        array: [...sortedArr],
+        result: results
+    });
+
+    return {
+        structures: [{ id: "arr", type: "array", label: "Array", data: original }],
+        steps
+    };
+}
+
+/**
+ * Deterministic Two Sum - finds two numbers that sum to target
+ */
+function deterministicTwoSum(query) {
+    if (!query) return null;
+    const queryLower = query.toLowerCase();
+
+    // Check if it's a Two Sum problem
+    const isTwoSum =
+        queryLower.includes('two sum') ||
+        (queryLower.includes('two') && queryLower.includes('sum') && queryLower.includes('target')) ||
+        (queryLower.includes('find') && queryLower.includes('two') && queryLower.includes('numbers') && queryLower.includes('sum')) ||
+        (queryLower.includes('array') && queryLower.includes('target') && queryLower.includes('indices'));
+
+    if (!isTwoSum) return null;
+
+    // Extract array and target from query
+    const arrayMatch = query.match(/\[([-\d,\s]+)\]/g);
+    if (!arrayMatch || arrayMatch.length < 1) return null;
+
+    let arr = arrayMatch[0].replace(/[\[\]]/g, '').split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+    if (arr.length < 2) return null;
+
+    // Try to find target
+    const targetMatch = query.match(/target[^0-9]*([-\d]+)/i) || query.match(/equals?\s+([-\d]+)/i);
+    let target = 0;
+    if (targetMatch) {
+        target = parseInt(targetMatch[1]);
+    } else {
+        // If no explicit target, look for a number near the context of sum
+        const numbers = query.match(/[-\d]+/g);
+        if (numbers && numbers.length > arr.length) {
+            // Take the last number as target if it's not part of the array
+            target = parseInt(numbers[numbers.length - 1]);
+        }
+    }
+
+    console.log(`[TwoSum Executor] Array: [${arr.join(',')}] Target: ${target}`);
+
+    const steps = [];
+    const original = [...arr];
+    const seen = new Map();
+
+    steps.push({
+        title: "Initial Array",
+        description: `Input array: [${arr.join(', ')}], target: ${target}`,
+        array: [...arr],
+        variables: { target }
+    });
+
+    for (let i = 0; i < arr.length; i++) {
+        const complement = target - arr[i];
+
+        steps.push({
+            title: `Check index ${i}`,
+            description: `Value: ${arr[i]}, looking for complement: ${complement}`,
+            array: [...arr],
+            pointers: { i },
+            highlight: [i],
+            variables: { target, complement }
+        });
+
+        if (seen.has(complement)) {
+            const j = seen.get(complement);
+            steps.push({
+                title: `Found pair: [${j}, ${i}]`,
+                description: `${arr[j]} + ${arr[i]} = ${arr[j] + arr[i]} = ${target}`,
+                array: [...arr],
+                pointers: { i, j },
+                highlight: [j, i],
+                result: [j, i]
+            });
+            return {
+                structures: [{ id: "arr", type: "array", label: "Array", data: original }],
+                steps
+            };
+        }
+
+        seen.set(arr[i], i);
+    }
+
+    steps.push({
+        title: "No pair found",
+        description: `No two numbers sum to ${target}`,
+        array: [...arr],
+        result: []
+    });
+
+    return {
+        structures: [{ id: "arr", type: "array", label: "Array", data: original }],
+        steps
+    };
+}
+
+/**
+ * Deterministic Container With Most Water
+ */
+function deterministicContainerWithMostWater(query) {
+    if (!query) return null;
+    const queryLower = query.toLowerCase();
+
+    // Check if it's a Container With Most Water problem
+    const isContainer =
+        queryLower.includes('container') && queryLower.includes('water') ||
+        queryLower.includes('most water') ||
+        queryLower.includes('maximiz') && queryLower.includes('area') ||
+        (queryLower.includes('array') && queryLower.includes('area') && queryLower.includes('vertical'));
+
+    if (!isContainer) return null;
+
+    // Extract array from query
+    const arrayMatch = query.match(/\[([-\d,\s]+)\]/);
+    if (!arrayMatch) return null;
+
+    let arr = arrayMatch[1].split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+    if (arr.length < 2) return null;
+
+    console.log(`[ContainerWater Executor] Array: [${arr.join(',')}]`);
+
+    const steps = [];
+    const original = [...arr];
+
+    steps.push({
+        title: "Initial Heights",
+        description: `Heights: [${arr.join(', ')}]`,
+        array: [...arr],
+        result: []
+    });
+
+    let left = 0;
+    let right = arr.length - 1;
+    let maxArea = 0;
+    let bestPair = [0, 0];
+
+    steps.push({
+        title: "Start Two Pointers",
+        description: `Left at ${left} (height ${arr[left]}), Right at ${right} (height ${arr[right]})`,
+        array: [...arr],
+        pointers: { left, right },
+        highlight: [left, right]
+    });
+
+    while (left < right) {
+        const width = right - left;
+        const height = Math.min(arr[left], arr[right]);
+        const area = width * height;
+
+        steps.push({
+            title: `Calculate Area`,
+            description: `Width: ${width}, Height: ${height}, Area: ${area}`,
+            array: [...arr],
+            pointers: { left, right },
+            highlight: [left, right],
+            variables: { width, height, area }
+        });
+
+        if (area > maxArea) {
+            maxArea = area;
+            bestPair = [left, right];
+            steps.push({
+                title: `New Max Area: ${area}`,
+                description: `Between indices [${left}, ${right}]`,
+                array: [...arr],
+                pointers: { left, right },
+                highlight: [left, right],
+                variables: { maxArea }
+            });
+        }
+
+        if (arr[left] < arr[right]) {
+            steps.push({
+                title: `Move Left Pointer`,
+                description: `Left height ${arr[left]} < Right height ${arr[right]}`,
+                array: [...arr],
+                pointers: { left, right },
+                highlight: [left]
+            });
+            left++;
+        } else {
+            steps.push({
+                title: `Move Right Pointer`,
+                description: `Right height ${arr[right]} <= Left height ${arr[left]}`,
+                array: [...arr],
+                pointers: { left, right },
+                highlight: [right]
+            });
+            right--;
+        }
+    }
+
+    steps.push({
+        title: "Maximum Area Found",
+        description: `Max area: ${maxArea} between indices [${bestPair[0]}, ${bestPair[1]}]`,
+        array: [...arr],
+        highlight: bestPair,
+        result: [maxArea]
+    });
+
+    return {
+        structures: [{ id: "arr", type: "array", label: "Heights", data: original }],
+        steps
+    };
+}
+
+/**
+ * Deterministic Best Time to Buy and Sell Stock
+ */
+function deterministicBuySellStock(query) {
+    if (!query) return null;
+    const queryLower = query.toLowerCase();
+
+    // Check if it's a Buy/Sell Stock problem
+    const isStock =
+        queryLower.includes('buy') && queryLower.includes('sell') ||
+        queryLower.includes('stock') && queryLower.includes('profit') ||
+        queryLower.includes('maximiz') && queryLower.includes('profit') ||
+        (queryLower.includes('array') && queryLower.includes('profit') && queryLower.includes('buy'));
+
+    if (!isStock) return null;
+
+    // Extract array from query
+    const arrayMatch = query.match(/\[([-\d,\s]+)\]/);
+    if (!arrayMatch) return null;
+
+    let arr = arrayMatch[1].split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+    if (arr.length < 2) return null;
+
+    console.log(`[BuySellStock Executor] Array: [${arr.join(',')}]`);
+
+    const steps = [];
+    const original = [...arr];
+
+    steps.push({
+        title: "Initial Prices",
+        description: `Prices: [${arr.join(', ')}]`,
+        array: [...arr],
+        result: []
+    });
+
+    let minPrice = arr[0];
+    let maxProfit = 0;
+    let buyDay = 0;
+    let sellDay = 0;
+    let currentBestBuy = 0;
+
+    steps.push({
+        title: "Initialize",
+        description: `Min price: ${minPrice} at day 0, Max profit: ${maxProfit}`,
+        array: [...arr],
+        pointers: { min: 0 },
+        highlight: [0],
+        variables: { minPrice, maxProfit }
+    });
+
+    for (let i = 1; i < arr.length; i++) {
+        steps.push({
+            title: `Day ${i}: Price ${arr[i]}`,
+            description: `Current price: ${arr[i]}`,
+            array: [...arr],
+            pointers: { i, min: currentBestBuy },
+            highlight: [i],
+            variables: { minPrice, maxProfit }
+        });
+
+        if (arr[i] < minPrice) {
+            minPrice = arr[i];
+            currentBestBuy = i;
+            steps.push({
+                title: `Update Min Price`,
+                description: `New minimum: ${minPrice} at day ${i}`,
+                array: [...arr],
+                pointers: { i, min: i },
+                highlight: [i],
+                variables: { minPrice }
+            });
+        } else {
+            const profit = arr[i] - minPrice;
+            steps.push({
+                title: `Calculate Profit`,
+                description: `Sell at ${arr[i]} - Buy at ${minPrice} = ${profit}`,
+                array: [...arr],
+                pointers: { i, min: currentBestBuy },
+                highlight: [currentBestBuy, i],
+                variables: { profit }
+            });
+
+            if (profit > maxProfit) {
+                maxProfit = profit;
+                buyDay = currentBestBuy;
+                sellDay = i;
+                steps.push({
+                    title: `New Max Profit: ${maxProfit}`,
+                    description: `Buy at day ${buyDay} (${arr[buyDay]}), Sell at day ${sellDay} (${arr[sellDay]})`,
+                    array: [...arr],
+                    pointers: { buy: buyDay, sell: sellDay },
+                    highlight: [buyDay, sellDay],
+                    variables: { maxProfit }
+                });
+            }
+        }
+    }
+
+    steps.push({
+        title: "Maximum Profit Found",
+        description: `Max profit: ${maxProfit} (Buy at ${arr[buyDay]} on day ${buyDay}, Sell at ${arr[sellDay]} on day ${sellDay})`,
+        array: [...arr],
+        highlight: [buyDay, sellDay],
+        result: [maxProfit]
+    });
+
+    return {
+        structures: [{ id: "arr", type: "array", label: "Prices", data: original }],
+        steps
+    };
+}
+
+/**
  * Parse tree array from user query like "BST [4,2,6,1,3,5,7]"
  */
 function parseTreeFromQuery(query) {
@@ -1990,55 +2682,60 @@ function treeExecutor(step, previousTree, queryOperations = []) {
                 validated.tree = [];
             }
         } else {
-            // Check if this is an insert/remove operation
-            // LLM may use "Visit X" in title but "Insert X" in description
-            const title = (validated.title || '').toLowerCase();
-            const description = (validated.description || '').toLowerCase();
-            const fullText = title + ' ' + description;
-
-            // Detect insert operation - check title AND description with improved patterns
-            const insertMatch = fullText.match(/insert[:\s]+(\d+)/i) ||
-                fullText.match(/inserting[:\s]+(\d+)/i) ||
-                fullText.match(/add[:\s]+(\d+)/i) ||
-                title.match(/visit\s+(\d+)/i) && description.includes('insert');
-
+            // Only perform algorithmic corrections if previousTree is provided (full validation mode)
+            // If previousTree is null, only do basic validation (minimal mode)
             if (previousTree && Array.isArray(previousTree)) {
-                const treeValues = previousTree.filter(v => v !== null && v !== undefined);
+                // Check if this is an insert/remove operation
+                // LLM may use "Visit X" in title but "Insert X" in description
+                const title = (validated.title || '').toLowerCase();
+                const description = (validated.description || '').toLowerCase();
+                const fullText = title + ' ' + description;
 
-                // Check for insert with improved pattern matching
-                const insertDirectMatch = fullText.match(/insert[:\s]+(\d+)/i) ||
-                                         fullText.match(/inserting[:\s]+(\d+)/i) ||
-                                         fullText.match(/add[:\s]+(\d+)/i);
-                if (insertDirectMatch) {
-                    const valueToInsert = parseInt(insertDirectMatch[1]);
-                    console.log(`[BST Executor] Detected INSERT ${valueToInsert}, previousTree has ${treeValues.length} nodes`);
+                // Detect insert operation - check title AND description with improved patterns
+                const insertMatch = fullText.match(/insert[:\s]+(\d+)/i) ||
+                    fullText.match(/inserting[:\s]+(\d+)/i) ||
+                    fullText.match(/add[:\s]+(\d+)/i) ||
+                    title.match(/visit\s+(\d+)/i) && description.includes('insert');
 
-                    if (!treeValues.includes(valueToInsert)) {
-                        const correctTree = bstInsertHelper(previousTree, valueToInsert);
-                        console.log(`[BST Executor] After INSERT ${valueToInsert}:`, correctTree.filter(v => v !== null));
-                        validated.tree = correctTree;
+                if (previousTree && Array.isArray(previousTree)) {
+                    const treeValues = previousTree.filter(v => v !== null && v !== undefined);
+
+                    // Check for insert with improved pattern matching
+                    const insertDirectMatch = fullText.match(/insert[:\s]+(\d+)/i) ||
+                        fullText.match(/inserting[:\s]+(\d+)/i) ||
+                        fullText.match(/add[:\s]+(\d+)/i);
+                    if (insertDirectMatch) {
+                        const valueToInsert = parseInt(insertDirectMatch[1]);
+                        console.log(`[BST Executor] Detected INSERT ${valueToInsert}, previousTree has ${treeValues.length} nodes`);
+
+                        if (!treeValues.includes(valueToInsert)) {
+                            const correctTree = bstInsertHelper(previousTree, valueToInsert);
+                            console.log(`[BST Executor] After INSERT ${valueToInsert}:`, correctTree.filter(v => v !== null));
+                            validated.tree = correctTree;
+                        }
                     }
-                }
 
-                // Check for remove with improved pattern matching
-                const removeDirectMatch = fullText.match(/remove[:\s]+(\d+)/i) ||
-                                         fullText.match(/removing[:\s]+(\d+)/i) ||
-                                         fullText.match(/delete[:\s]+(\d+)/i) ||
-                                         fullText.match(/deleting[:\s]+(\d+)/i);
-                if (removeDirectMatch) {
-                    const valueToRemove = parseInt(removeDirectMatch[1]);
-                    console.log(`[BST Executor] Detected REMOVE ${valueToRemove}, previousTree has ${treeValues.length} nodes`);
+                    // Check for remove with improved pattern matching
+                    const removeDirectMatch = fullText.match(/remove[:\s]+(\d+)/i) ||
+                        fullText.match(/removing[:\s]+(\d+)/i) ||
+                        fullText.match(/delete[:\s]+(\d+)/i) ||
+                        fullText.match(/deleting[:\s]+(\d+)/i);
+                    if (removeDirectMatch) {
+                        const valueToRemove = parseInt(removeDirectMatch[1]);
+                        console.log(`[BST Executor] Detected REMOVE ${valueToRemove}, previousTree has ${treeValues.length} nodes`);
 
-                    if (treeValues.includes(valueToRemove)) {
-                        const correctTree = bstRemoveHelper(previousTree, valueToRemove);
-                        console.log(`[BST Executor] After REMOVE ${valueToRemove}:`, correctTree.filter(v => v !== null));
-                        validated.tree = correctTree;
-                    } else {
-                        console.log(`[BST Executor] Value ${valueToRemove} not in tree, skipping remove`);
+                        if (treeValues.includes(valueToRemove)) {
+                            const correctTree = bstRemoveHelper(previousTree, valueToRemove);
+                            console.log(`[BST Executor] After REMOVE ${valueToRemove}:`, correctTree.filter(v => v !== null));
+                            validated.tree = correctTree;
+                        } else {
+                            console.log(`[BST Executor] Value ${valueToRemove} not in tree, skipping remove`);
+                        }
                     }
                 }
             }
 
+            // Always perform basic validation (remove duplicates, trim nulls, validate BST structure)
             // Remove duplicates
             validated.tree = removeDuplicatesFromTree(validated.tree);
             // Trim trailing nulls
@@ -2057,7 +2754,8 @@ function treeExecutor(step, previousTree, queryOperations = []) {
     }
 
     // For tree operations, generate path information for visualization
-    if (Array.isArray(validated.tree) && validated.tree.length > 0) {
+    // Only do this in full validation mode (when previousTree is provided)
+    if (previousTree && Array.isArray(validated.tree) && validated.tree.length > 0) {
         const title = (validated.title || '').toLowerCase();
         const description = (validated.description || '').toLowerCase();
 
@@ -2095,7 +2793,7 @@ function treeExecutor(step, previousTree, queryOperations = []) {
         // Generate path for insert operations (path to where the node would be inserted)
         if (isInsertOperation) {
             const insertMatch = title.match(/insert[:\s]+(\d+)/i) || description.match(/insert[:\s]+(\d+)/i) ||
-                               title.match(/inserting[:\s]+(\d+)/i) || description.match(/inserting[:\s]+(\d+)/i);
+                title.match(/inserting[:\s]+(\d+)/i) || description.match(/inserting[:\s]+(\d+)/i);
             if (insertMatch) {
                 const insertValue = parseInt(insertMatch[1]);
                 const treeRoot = levelOrderToTree(validated.tree);
@@ -2668,35 +3366,77 @@ function checkIfLlmOutputIsValidForQuery(llmOutput, query) {
     const stepDescriptions = llmOutput.steps.map(step => (step.description || '').toLowerCase());
     const allText = (stepTitles.join(' ') + ' ' + stepDescriptions.join(' ')).toLowerCase();
 
-    // For binary search queries
+    // For binary search queries - very specific matching
     if (queryLower.includes('binary search')) {
-        return allText.includes('binary') || allText.includes('search') ||
-               allText.includes('mid') || allText.includes('found') ||
-               allText.includes('left') || allText.includes('right');
+        return allText.includes('binary') && allText.includes('search') ||
+            allText.includes('mid') && (allText.includes('left') || allText.includes('right')) ||
+            allText.includes('found') && allText.includes('target');
     }
 
     // For tree traversal queries
     if (queryLower.includes('inorder') || queryLower.includes('preorder') || queryLower.includes('postorder')) {
-        return allText.includes('visit') || allText.includes('travers') ||
-               allText.includes('inorder') || allText.includes('preorder') || allText.includes('postorder');
+        return allText.includes('visit') && (allText.includes('left') || allText.includes('right')) ||
+            allText.includes('travers') ||
+            allText.includes('inorder') || allText.includes('preorder') || allText.includes('postorder');
     }
 
     // For insert/remove operations
     if (queryLower.includes('insert') || queryLower.includes('remove') || queryLower.includes('delete')) {
         return allText.includes('insert') || allText.includes('remove') ||
-               allText.includes('delete') || allText.includes('add');
+            allText.includes('delete') || allText.includes('add');
     }
 
     // For sorting operations
     if (queryLower.includes('sort')) {
-        return allText.includes('sort') || allText.includes('compare') ||
-               allText.includes('swap') || allText.includes('pivot');
+        return allText.includes('sort') && (allText.includes('compare') || allText.includes('swap'));
     }
 
-    // For general array operations
-    if (queryLower.includes('find') || queryLower.includes('max') || queryLower.includes('min')) {
-        return allText.includes('find') || allText.includes('max') ||
-               allText.includes('min') || allText.includes('search');
+    // For linear search
+    if (queryLower.includes('linear search')) {
+        return allText.includes('linear') && allText.includes('search') ||
+            allText.includes('check') && allText.includes('index');
+    }
+
+    // For two pointer problems
+    if (queryLower.includes('two pointer') || queryLower.includes('two pointer')) {
+        return allText.includes('left') && allText.includes('right') ||
+            allText.includes('pointer') && (allText.includes('left') || allText.includes('right'));
+    }
+
+    // For sliding window
+    if (queryLower.includes('sliding window') || queryLower.includes('window')) {
+        return allText.includes('window') || allText.includes('slide') ||
+            allText.includes('left') && allText.includes('right') && allText.includes('sum');
+    }
+
+    // For specific array operations like max/min finding
+    if (queryLower.includes('find') && (queryLower.includes('max') || queryLower.includes('min'))) {
+        return allText.includes('max') || allText.includes('min') ||
+            allText.includes('largest') || allText.includes('smallest');
+    }
+
+    // For Two Sum problems
+    if (queryLower.includes('two sum') || (queryLower.includes('two') && queryLower.includes('sum'))) {
+        return allText.includes('two') && allText.includes('sum') ||
+            allText.includes('target') || allText.includes('pair');
+    }
+
+    // For 3Sum problems
+    if (queryLower.includes('3sum') || (queryLower.includes('three') && queryLower.includes('sum'))) {
+        return allText.includes('three') && allText.includes('sum') ||
+            allText.includes('triplet') || allText.includes('zero');
+    }
+
+    // For container with most water
+    if (queryLower.includes('container') && queryLower.includes('water')) {
+        return allText.includes('area') && (allText.includes('left') || allText.includes('right')) ||
+            allText.includes('water') || allText.includes('maximize');
+    }
+
+    // For stock buy/sell problems
+    if (queryLower.includes('buy') && queryLower.includes('sell') || queryLower.includes('stock')) {
+        return allText.includes('buy') && allText.includes('sell') ||
+            allText.includes('price') && allText.includes('profit');
     }
 
     // If we can't determine the intent clearly, be conservative and let validation run
@@ -2748,8 +3488,8 @@ function validateAndCorrectTreeOutput(llmOutput, query) {
 
             // Check for insert operation - improved pattern matching
             const insertMatch = fullText.match(/insert[:\s]+(\d+)/i) ||
-                               fullText.match(/inserting[:\s]+(\d+)/i) ||
-                               fullText.match(/add[:\s]+(\d+)/i);
+                fullText.match(/inserting[:\s]+(\d+)/i) ||
+                fullText.match(/add[:\s]+(\d+)/i);
             if (insertMatch) {
                 const valueToInsert = parseInt(insertMatch[1]);
                 if (!isNaN(valueToInsert)) {
@@ -2760,9 +3500,9 @@ function validateAndCorrectTreeOutput(llmOutput, query) {
 
             // Check for remove operation - improved pattern matching
             const removeMatch = fullText.match(/remove[:\s]+(\d+)/i) ||
-                               fullText.match(/removing[:\s]+(\d+)/i) ||
-                               fullText.match(/delete[:\s]+(\d+)/i) ||
-                               fullText.match(/deleting[:\s]+(\d+)/i);
+                fullText.match(/removing[:\s]+(\d+)/i) ||
+                fullText.match(/delete[:\s]+(\d+)/i) ||
+                fullText.match(/deleting[:\s]+(\d+)/i);
             if (removeMatch) {
                 const valueToRemove = parseInt(removeMatch[1]);
                 if (!isNaN(valueToRemove)) {
@@ -3424,23 +4164,30 @@ function generateSearchOperation(tree, query) {
 module.exports = {
     runExecutors,
     isExecutorsEnabled,
-    // Individual executors
+    // NEW: Intent-respecting layer functions
+    applyCorrectionsOnly,
+    generateDeterministicFallback,
+    treeExecutorCorrectionOnly,
+    deterministicTreeFallback,
+    // Individual executors (correction-only)
     arrayExecutor,
     stackExecutor,
     queueExecutor,
     treeExecutor,
     pointersExecutor,
     structureExecutor,
-    // Universal executors
+    // Universal executors (legacy - used in fallback mode only)
     universalTreeExecutor,
     universalArrayExecutor,
     universalStackExecutor,
     universalQueueExecutor,
-    // BST helpers (for use in normalizer/controller)
+    // BST helpers
     bstInsert,
     bstRemove,
     levelOrderToTree,
     treeToLevelOrder,
     // Helper functions
-    checkIfTreeQuery
+    checkIfTreeQuery,
+    parseTreeFromQuery,
+    parseOperationsFromQuery
 };

@@ -19,86 +19,26 @@ class UniversalNormalizer {
     }
 
     /**
-     * Normalize with query-based structure type override
-     * This fixes LLM outputting wrong structure types
+     * Normalize with query context - RENDER ONLY, NO LOGIC INJECTION
+     * 
+     * IMPORTANT: This function MUST NOT:
+     * - Change structure types based on query keywords
+     * - Convert trees to arrays or vice versa
+     * - Infer or change algorithm intent
+     * 
+     * It ONLY:
+     * - Validates data format
+     * - Normalizes field names
+     * - Prepares data for rendering
      */
     normalizeWithQuery(llmOutput, query = '') {
         if (!llmOutput || typeof llmOutput !== 'object') {
             return this.getFallback();
         }
 
-        const queryLower = query.toLowerCase();
-
-        // Determine expected structure type based on query keywords
-        let forceType = null;
-
-        // Check if this is a tree query first to avoid incorrect array forcing
-        // Using a simple pattern check to avoid circular dependency
-        const isTreeRelated = queryLower.includes('tree') ||
-                             queryLower.includes('bst') ||
-                             queryLower.includes('binary search tree') ||
-                             queryLower.includes('binary tree') ||
-                             queryLower.includes('inorder') ||
-                             queryLower.includes('preorder') ||
-                             queryLower.includes('postorder') ||
-                             queryLower.includes('traversal') ||
-                             (queryLower.includes('insert') && (queryLower.includes('tree') || queryLower.includes('bst'))) ||
-                             (queryLower.includes('remove') && (queryLower.includes('tree') || queryLower.includes('bst'))) ||
-                             (queryLower.includes('delete') && (queryLower.includes('tree') || queryLower.includes('bst')));
-
-        if (!isTreeRelated && (
-            queryLower.includes('binary search') ||
-            queryLower.includes('bubble sort') ||
-            queryLower.includes('selection sort') ||
-            queryLower.includes('quick sort') ||
-            queryLower.includes('merge sort') ||
-            queryLower.includes('two pointer') ||
-            queryLower.includes('sliding window') ||
-            queryLower.includes('max sum') ||
-            queryLower.includes('subarray'))) {
-            forceType = 'array';
-        }
-
-        // Override structure types if needed
-        let structures = llmOutput.structures || [];
-        if (forceType === 'array' && Array.isArray(structures)) {
-            // Filter out tree structures and convert them to array
-            const convertedStructures = [];
-            let hasArray = false;
-
-            for (const struct of structures) {
-                if (struct.type === 'tree' || struct.type === 'bst' || struct.id === 'tree') {
-                    // Convert tree to array
-                    console.log(`[Normalizer] CONVERTING tree to array: id=${struct.id}, type=${struct.type}`);
-                    convertedStructures.push({
-                        id: 'arr',
-                        type: 'array',
-                        label: 'Array',
-                        data: struct.data || []
-                    });
-                    hasArray = true;
-                } else if (struct.type === 'array' || struct.id === 'arr') {
-                    // Keep existing array
-                    convertedStructures.push(struct);
-                    hasArray = true;
-                } else if (struct.id !== 'result') {
-                    // Skip other unknown structures except result
-                    console.log(`[Normalizer] SKIPPING structure: id=${struct.id}, type=${struct.type}`);
-                }
-            }
-
-            // If no array found, create one from first structure
-            if (!hasArray && structures.length > 0) {
-                convertedStructures.push({
-                    id: 'arr',
-                    type: 'array',
-                    label: 'Array',
-                    data: structures[0].data || []
-                });
-            }
-
-            structures = convertedStructures;
-        }
+        // Pass structures through without modification
+        // The executor layer has already handled intent-based corrections
+        const structures = llmOutput.structures || [];
 
         const normalizedStructures = this.normalizeStructures(structures);
         const steps = this.normalizeSteps(llmOutput.steps || [], normalizedStructures);
