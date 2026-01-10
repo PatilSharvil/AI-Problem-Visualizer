@@ -1,11 +1,7 @@
 const { getAPIKeyManager } = require('./apiKeyManager');
 const { GeminiAdapter } = require('./geminiAdapter');
 const { OpenRouterAdapter } = require('./openrouterAdapter');
-const { DeepSeekAdapter } = require('./deepseekAdapter');
-const { OpenAIAdapter } = require('./openaiAdapter');
-const { GroqAdapter } = require('./groqAdapter');
-const { TogetherAdapter } = require('./togetherAdapter');
-const { OllamaAdapter } = require('./ollamaAdapter'); // Import Ollama adapter
+const { OllamaAdapter } = require('./ollamaAdapter');
 
 class LLMService {
   constructor() {
@@ -29,14 +25,6 @@ class LLMService {
         return new GeminiAdapter(apiKey);
       case 'openrouter':
         return new OpenRouterAdapter(apiKey);
-      case 'deepseek':
-        return new DeepSeekAdapter(apiKey);
-      case 'openai':
-        return new OpenAIAdapter(apiKey);
-      case 'groq':
-        return new GroqAdapter(apiKey);
-      case 'togetherai':
-        return new TogetherAdapter(apiKey);
       default:
         throw new Error(`Unsupported LLM provider: ${provider}`);
     }
