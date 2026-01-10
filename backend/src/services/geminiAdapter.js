@@ -53,79 +53,295 @@ class GeminiAdapter extends LLMAdapterInterface {
   }
 
   buildVisualizationPrompt(problem) {
-    return `You are an ALGORITHM VISUALIZATION ENGINE. Your ONLY job is to generate step-by-step visualization data.
+    const p = problem.toLowerCase();
 
-=== STRICT OUTPUT FORMAT ===
-You MUST return a JSON object with EXACTLY this structure:
+    // Detect data structure type from query
+    const isTreeQuery = p.includes('tree') || p.includes('bst') ||
+      p.includes('inorder') || p.includes('preorder') ||
+      p.includes('postorder') || p.includes('level order') ||
+      (p.includes('traversal') && !p.includes('array'));
 
+    const isStackQuery = p.includes('stack') || p.includes('parenthes') ||
+      p.includes('bracket') || p.includes('balanced') ||
+      (p.includes('push') && p.includes('pop')) ||
+      p.includes('lifo') || p.includes('reverse string') ||
+      p.includes('postfix') || p.includes('infix') ||
+      p.includes('expression') || p.includes('next greater');
+
+    const isQueueQuery = p.includes('queue') || p.includes('fifo') ||
+      p.includes('enqueue') || p.includes('dequeue') ||
+      p.includes('bfs') || p.includes('breadth first');
+
+    if (isTreeQuery) {
+      return this.buildTreePrompt(problem);
+    } else if (isStackQuery) {
+      return this.buildStackPrompt(problem);
+    } else if (isQueueQuery) {
+      return this.buildQueuePrompt(problem);
+    }
+    return this.buildArrayPrompt(problem);
+  }
+
+  buildTreePrompt(problem) {
+    return `You are an ALGORITHM VISUALIZATION ENGINE for TREE/BST operations.
+
+=== STRICT OUTPUT FORMAT FOR TREES ===
 {
   "structures": [
-    {"id": "arr", "type": "array", "label": "Array", "data": [THE_INPUT_ARRAY]}
+    {"id": "tree", "type": "tree", "label": "BST", "data": [LEVEL_ORDER_ARRAY]}
   ],
   "steps": [
     {
-      "title": "Step 1 Title",
-      "description": "What happens in this step",
-      "array": [CURRENT_ARRAY_STATE],
-      "pointers": {"left": 0, "right": 5, "i": 2},
-      "highlight": [INDICES_TO_HIGHLIGHT],
-      "result": [CURRENT_RESULT_IF_ANY]
+      "title": "Step Title",
+      "description": "What happens",
+      "tree": [CURRENT_TREE_STATE_LEVEL_ORDER],
+      "highlight": [INDICES_TO_HIGHLIGHT]
     }
   ]
 }
 
+=== TREE FORMAT (LEVEL-ORDER ARRAY) ===
+The tree is represented as a level-order array:
+Example: [4,2,6,1,3,5,7] represents:
+       4          ← index 0 (root)
+      / \\
+     2   6        ← indices 1, 2
+    /\\ /\\
+   1 3 5 7        ← indices 3, 4, 5, 6
+
+- Root at index 0
+- Left child of index i = 2*i + 1
+- Right child of index i = 2*i + 2
+- Use null for missing nodes
+
 === CRITICAL RULES ===
-1. EVERY step MUST have an "array" field with the FULL array state
-2. Use "pointers" for index tracking (left, right, mid, i, j, etc.)
-3. Use "highlight" array to show which indices are being processed
-4. Use "result" to accumulate found values
-5. Generate 3-10 steps showing the algorithm execution
-6. DO NOT include explanations, code, or text descriptions
-7. Return ONLY the JSON object, nothing else
+1. EVERY step MUST have a "tree" field with the FULL tree state
+2. Use level-order array format [root, left, right, left.left, left.right, ...]
+3. Use "highlight" to show which node indices are being processed
+4. Generate 3-10 steps showing the algorithm execution
+5. Return ONLY the JSON object
 
 === EXAMPLES ===
 
---- Binary Search Example ---
-Problem: Binary search for 5 in [1,2,3,4,5,6,7]
+--- BST Insert Example ---
+Problem: Insert 5,3,7 into BST
 {
-  "structures": [{"id": "arr", "type": "array", "label": "Array", "data": [1,2,3,4,5,6,7]}],
+  "structures": [{"id": "tree", "type": "tree", "label": "BST", "data": []}],
   "steps": [
-    {"title": "Check mid=3", "description": "arr[3]=4 < 5, search right", "array": [1,2,3,4,5,6,7], "pointers": {"left": 0, "right": 6, "mid": 3}, "highlight": [3]},
-    {"title": "Check mid=5", "description": "arr[5]=6 > 5, search left", "array": [1,2,3,4,5,6,7], "pointers": {"left": 4, "right": 6, "mid": 5}, "highlight": [5]},
-    {"title": "Found at 4", "description": "arr[4]=5, target found!", "array": [1,2,3,4,5,6,7], "pointers": {"left": 4, "right": 4, "mid": 4}, "highlight": [4], "result": [5]}
+    {"title": "Insert 5", "description": "5 becomes root", "tree": [5], "highlight": [0]},
+    {"title": "Insert 3", "description": "3 < 5, go left", "tree": [5,3], "highlight": [1]},
+    {"title": "Insert 7", "description": "7 > 5, go right", "tree": [5,3,7], "highlight": [2]},
+    {"title": "Complete", "description": "BST constructed", "tree": [5,3,7], "result": [5,3,7]}
   ]
 }
 
---- Two Pointer / 3Sum Example ---
-Problem: 3Sum find triplets summing to 0 in [-1,0,1,2,-1,-4]
+--- Inorder Traversal Example ---
+Problem: Inorder traversal of [4,2,6,1,3,5,7]
 {
-  "structures": [{"id": "arr", "type": "array", "label": "Sorted Array", "data": [-4,-1,-1,0,1,2]}],
+  "structures": [{"id": "tree", "type": "tree", "label": "BST", "data": [4,2,6,1,3,5,7]}],
   "steps": [
-    {"title": "Sort Array", "description": "Sort for two-pointer approach", "array": [-4,-1,-1,0,1,2], "highlight": []},
-    {"title": "i=0: Fix -4", "description": "Need sum=4 from rest", "array": [-4,-1,-1,0,1,2], "pointers": {"i": 0, "left": 1, "right": 5}, "highlight": [0,1,5]},
-    {"title": "i=1: Fix -1", "description": "Need sum=1 from rest", "array": [-4,-1,-1,0,1,2], "pointers": {"i": 1, "left": 2, "right": 5}, "highlight": [1,2,5]},
-    {"title": "Found [-1,-1,2]", "description": "-1+(-1)+2=0", "array": [-4,-1,-1,0,1,2], "pointers": {"i": 1, "left": 2, "right": 5}, "highlight": [1,2,5], "result": [[-1,-1,2]]},
-    {"title": "Found [-1,0,1]", "description": "-1+0+1=0", "array": [-4,-1,-1,0,1,2], "pointers": {"i": 1, "left": 3, "right": 4}, "highlight": [1,3,4], "result": [[-1,-1,2],[-1,0,1]]}
+    {"title": "Visit 1", "description": "Leftmost node", "tree": [4,2,6,1,3,5,7], "highlight": [3], "result": [1]},
+    {"title": "Visit 2", "description": "Parent of 1", "tree": [4,2,6,1,3,5,7], "highlight": [1], "result": [1,2]},
+    {"title": "Visit 3", "description": "Right of 2", "tree": [4,2,6,1,3,5,7], "highlight": [4], "result": [1,2,3]},
+    {"title": "Visit 4", "description": "Root", "tree": [4,2,6,1,3,5,7], "highlight": [0], "result": [1,2,3,4]},
+    {"title": "Visit 5", "description": "Left of 6", "tree": [4,2,6,1,3,5,7], "highlight": [5], "result": [1,2,3,4,5]},
+    {"title": "Visit 6", "description": "Right of root", "tree": [4,2,6,1,3,5,7], "highlight": [2], "result": [1,2,3,4,5,6]},
+    {"title": "Visit 7", "description": "Rightmost", "tree": [4,2,6,1,3,5,7], "highlight": [6], "result": [1,2,3,4,5,6,7]}
   ]
 }
 
---- Sorting Example ---
-Problem: Bubble sort [5,2,8,1,9]
+--- BST Search Example ---
+Problem: Search for 5 in BST [4,2,6,1,3,5,7]
 {
-  "structures": [{"id": "arr", "type": "array", "label": "Array", "data": [5,2,8,1,9]}],
+  "structures": [{"id": "tree", "type": "tree", "label": "BST", "data": [4,2,6,1,3,5,7]}],
   "steps": [
-    {"title": "Compare 5,2", "description": "5>2, swap", "array": [2,5,8,1,9], "pointers": {"i": 0, "j": 1}, "highlight": [0,1]},
-    {"title": "Compare 8,1", "description": "8>1, swap", "array": [2,5,1,8,9], "pointers": {"i": 2, "j": 3}, "highlight": [2,3]},
-    {"title": "Compare 5,1", "description": "5>1, swap", "array": [2,1,5,8,9], "pointers": {"i": 1, "j": 2}, "highlight": [1,2]},
-    {"title": "Compare 2,1", "description": "2>1, swap", "array": [1,2,5,8,9], "pointers": {"i": 0, "j": 1}, "highlight": [0,1]},
-    {"title": "Sorted", "description": "Array is sorted", "array": [1,2,5,8,9], "result": [1,2,5,8,9]}
+    {"title": "Check 4", "description": "5 > 4, go right", "tree": [4,2,6,1,3,5,7], "highlight": [0]},
+    {"title": "Check 6", "description": "5 < 6, go left", "tree": [4,2,6,1,3,5,7], "highlight": [2]},
+    {"title": "Found 5", "description": "Target found!", "tree": [4,2,6,1,3,5,7], "highlight": [5], "result": [5]}
   ]
 }
 
 === YOUR TASK ===
 Problem: ${problem}
 
-Generate visualization JSON following the EXACT format above. Return ONLY the JSON object.`;
+Generate visualization JSON with tree structure. Return ONLY the JSON object.`;
+  }
+
+  buildArrayPrompt(problem) {
+    return `You are an ALGORITHM VISUALIZATION ENGINE. Your ONLY job is to generate step-by-step visualization data.
+
+=== STRICT OUTPUT FORMAT ===
+{
+  "structures": [{"id": "arr", "type": "array", "label": "Array", "data": [THE_INPUT_ARRAY]}],
+  "steps": [
+    {"title": "Step Title", "description": "What happens", "array": [ARRAY_STATE], "pointers": {"left": 0, "right": 5}, "highlight": [INDICES]}
+  ]
+}
+
+=== CRITICAL RULES ===
+1. EVERY step MUST have an "array" field with the FULL array state
+2. Use "pointers" for index tracking (left, right, mid, i, j)
+3. Use "highlight" to show which indices are being processed
+4. Generate 3-10 steps
+5. Return ONLY the JSON object
+
+=== EXAMPLES ===
+
+--- Binary Search ---
+{
+  "structures": [{"id": "arr", "type": "array", "label": "Array", "data": [1,2,3,4,5,6,7]}],
+  "steps": [
+    {"title": "Check mid=3", "description": "arr[3]=4 < 5", "array": [1,2,3,4,5,6,7], "pointers": {"left": 0, "right": 6, "mid": 3}, "highlight": [3]},
+    {"title": "Found at 4", "description": "arr[4]=5", "array": [1,2,3,4,5,6,7], "pointers": {"mid": 4}, "highlight": [4], "result": [5]}
+  ]
+}
+
+--- 3Sum ---
+{
+  "structures": [{"id": "arr", "type": "array", "label": "Array", "data": [-4,-1,-1,0,1,2]}],
+  "steps": [
+    {"title": "Sort", "description": "Sort array", "array": [-4,-1,-1,0,1,2], "highlight": []},
+    {"title": "Found [-1,-1,2]", "description": "-1+-1+2=0", "array": [-4,-1,-1,0,1,2], "pointers": {"i": 1, "left": 2, "right": 5}, "highlight": [1,2,5], "result": [[-1,-1,2]]}
+  ]
+}
+
+=== YOUR TASK ===
+Problem: ${problem}
+
+Generate visualization JSON. Return ONLY the JSON object.`;
+  }
+
+  buildStackPrompt(problem) {
+    return `You are an ALGORITHM VISUALIZATION ENGINE for STACK operations.
+
+=== STRICT OUTPUT FORMAT FOR STACKS ===
+{
+  "structures": [
+    {"id": "stack", "type": "stack", "label": "Stack", "data": []}
+  ],
+  "steps": [
+    {
+      "title": "Step Title",
+      "description": "What happens",
+      "stack": [CURRENT_STACK_STATE],
+      "highlight": [INDICES_TO_HIGHLIGHT]
+    }
+  ]
+}
+
+=== STACK FORMAT ===
+Stack array: [bottom, ..., top] - LAST element is TOP
+- Push: Add to end of array (top)
+- Pop: Remove from end of array (top)
+
+=== CRITICAL RULES ===
+1. EVERY step MUST have a "stack" field with the stack state
+2. Use [bottom, ..., top] format - last element is TOP
+3. Use "highlight" to show which elements are being processed
+4. For parentheses: push opening brackets, pop on matching close
+5. Generate 3-10 steps
+6. Return ONLY the JSON object
+
+=== EXAMPLES ===
+
+--- Valid Parentheses Example ---
+Problem: Check if "(())" is valid
+{
+  "structures": [{"id": "stack", "type": "stack", "label": "Stack", "data": []}],
+  "steps": [
+    {"title": "Push (", "description": "Found ( at index 0, push", "stack": ["("], "highlight": [0]},
+    {"title": "Push (", "description": "Found ( at index 1, push", "stack": ["(", "("], "highlight": [1]},
+    {"title": "Pop - Match", "description": "Found ) at index 2, matches top (", "stack": ["("], "highlight": [0]},
+    {"title": "Pop - Match", "description": "Found ) at index 3, matches top (", "stack": [], "highlight": []},
+    {"title": "Valid", "description": "Stack empty - valid!", "stack": [], "result": ["Valid"]}
+  ]
+}
+
+--- Push/Pop Example ---
+Problem: Push 1,2,3 then pop twice
+{
+  "structures": [{"id": "stack", "type": "stack", "label": "Stack", "data": []}],
+  "steps": [
+    {"title": "Push 1", "description": "1 is bottom and top", "stack": [1], "highlight": [0]},
+    {"title": "Push 2", "description": "2 is new top", "stack": [1, 2], "highlight": [1]},
+    {"title": "Push 3", "description": "3 is new top", "stack": [1, 2, 3], "highlight": [2]},
+    {"title": "Pop 3", "description": "Remove top element", "stack": [1, 2], "result": [3]},
+    {"title": "Pop 2", "description": "Remove top element", "stack": [1], "result": [3, 2]}
+  ]
+}
+
+=== YOUR TASK ===
+Problem: ${problem}
+
+Generate visualization JSON with stack structure. Return ONLY the JSON object.`;
+  }
+
+  buildQueuePrompt(problem) {
+    return `You are an ALGORITHM VISUALIZATION ENGINE for QUEUE operations.
+
+=== STRICT OUTPUT FORMAT FOR QUEUES ===
+{
+  "structures": [
+    {"id": "queue", "type": "queue", "label": "Queue", "data": []}
+  ],
+  "steps": [
+    {
+      "title": "Step Title",
+      "description": "What happens",
+      "queue": [CURRENT_QUEUE_STATE],
+      "highlight": [INDICES_TO_HIGHLIGHT]
+    }
+  ]
+}
+
+=== QUEUE FORMAT ===
+Queue array: [front, ..., rear] - FIRST element is FRONT
+- Enqueue: Add to end of array (rear)
+- Dequeue: Remove from start of array (front)
+
+=== CRITICAL RULES ===
+1. EVERY step MUST have a "queue" field with the queue state
+2. Use [front, ..., rear] format - first element is FRONT
+3. Use "highlight" to show which elements are being processed
+4. For BFS: enqueue children, dequeue to visit
+5. Generate 3-10 steps
+6. Return ONLY the JSON object
+
+=== EXAMPLES ===
+
+--- Enqueue/Dequeue Example ---
+Problem: Enqueue 1,2,3 then dequeue twice
+{
+  "structures": [{"id": "queue", "type": "queue", "label": "Queue", "data": []}],
+  "steps": [
+    {"title": "Enqueue 1", "description": "1 is front and rear", "queue": [1], "highlight": [0]},
+    {"title": "Enqueue 2", "description": "2 is new rear", "queue": [1, 2], "highlight": [1]},
+    {"title": "Enqueue 3", "description": "3 is new rear", "queue": [1, 2, 3], "highlight": [2]},
+    {"title": "Dequeue 1", "description": "Remove front element", "queue": [2, 3], "result": [1]},
+    {"title": "Dequeue 2", "description": "Remove front element", "queue": [3], "result": [1, 2]}
+  ]
+}
+
+--- BFS Example ---
+Problem: BFS on tree [4,2,6,1,3,5,7]
+{
+  "structures": [
+    {"id": "tree", "type": "tree", "label": "BST", "data": [4,2,6,1,3,5,7]},
+    {"id": "queue", "type": "queue", "label": "Queue", "data": []}
+  ],
+  "steps": [
+    {"title": "Start", "description": "Enqueue root 4", "tree": [4,2,6,1,3,5,7], "queue": [4], "highlight": [0]},
+    {"title": "Visit 4", "description": "Dequeue 4, enqueue 2,6", "tree": [4,2,6,1,3,5,7], "queue": [2,6], "result": [4]},
+    {"title": "Visit 2", "description": "Dequeue 2, enqueue 1,3", "tree": [4,2,6,1,3,5,7], "queue": [6,1,3], "result": [4,2]},
+    {"title": "Visit 6", "description": "Dequeue 6, enqueue 5,7", "tree": [4,2,6,1,3,5,7], "queue": [1,3,5,7], "result": [4,2,6]},
+    {"title": "Complete", "description": "Visit remaining nodes", "tree": [4,2,6,1,3,5,7], "queue": [], "result": [4,2,6,1,3,5,7]}
+  ]
+}
+
+=== YOUR TASK ===
+Problem: ${problem}
+
+Generate visualization JSON with queue structure. Return ONLY the JSON object.`;
   }
 }
 

@@ -122,9 +122,9 @@ function applyCorrectionsOnly(llmOutput, intent, originalProblem) {
     if (Array.isArray(llmOutput)) {
         console.log('[Executor] Transforming array-format LLM output to object format');
 
-        // Extract array data from first step for structures
+        // Extract array/tree data from first step for structures
         const firstStep = llmOutput[0] || {};
-        const arrayData = firstStep.array || firstStep.data || [];
+        const structureData = firstStep.array || firstStep.tree || firstStep.data || [];
 
         // Determine structure type from intent
         const structureType = intent.domain === 'tree' ? 'tree' :
@@ -137,21 +137,23 @@ function applyCorrectionsOnly(llmOutput, intent, originalProblem) {
             id: structureId,
             type: structureType,
             label: structureType.toUpperCase(),
-            data: arrayData
+            data: structureData
         }];
 
         // Transform each step to include title/description
         const steps = llmOutput.map((step, idx) => ({
-            title: step.action || step.comparison || `Step ${step.step || idx + 1}`,
-            description: step.action || step.comparison || `Processing step ${idx + 1}`,
+            title: step.action || step.comparison || step.title || `Step ${step.step || idx + 1}`,
+            description: step.action || step.comparison || step.description || `Processing step ${idx + 1}`,
             array: step.array || step.data,
+            tree: step.tree,
             pointers: step.low !== undefined ? { low: step.low, high: step.high, mid: step.mid } : undefined,
-            highlight: step.mid !== undefined ? [step.mid] : [],
+            highlight: step.highlight || (step.mid !== undefined ? [step.mid] : []),
             variables: {
                 target: step.target,
                 mid_value: step.mid_value,
                 found: step.found
-            }
+            },
+            result: step.result
         }));
 
         normalizedOutput = { structures, steps };
