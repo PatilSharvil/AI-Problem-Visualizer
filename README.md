@@ -345,3 +345,6 @@ VishvaRoop/
 - 🌐 Multi-language support for problem statements
 
 
+```
+“The future of engineering belongs to those who help others understand.”
+```
